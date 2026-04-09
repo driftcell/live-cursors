@@ -3,6 +3,7 @@ export function getEmbedJS(origin: string): string {
   var script=document.currentScript;
   var ORIGIN=${JSON.stringify(origin)};
   var room=script&&script.getAttribute("data-room")||location.pathname;
+  var presenceSelector=script&&script.getAttribute("data-presence");
 
   /* ── styles ── */
   var style=document.createElement("style");
@@ -14,8 +15,10 @@ export function getEmbedJS(origin: string): string {
     .lc-info{display:flex;align-items:center;gap:4px;margin-left:10px;margin-top:-2px}
     .lc-avatar{width:20px;height:20px;border-radius:50%;border:1.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.12)}
     .lc-dot{width:20px;height:20px;border-radius:50%;border:1.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.12);display:flex;align-items:center;justify-content:center;color:#fff;font:bold 10px/1 system-ui}
-    .lc-label{padding:1px 6px;border-radius:4px;font:500 11px/1.4 system-ui;color:#fff;white-space:nowrap}
+    .lc-label{padding:1px 6px;border-radius:4px;font:500 11px/1.4 system-ui;color:#fff;white-space:nowrap;opacity:0;transform:translateX(-3px);transition:opacity .15s,transform .15s}
+    .lc-cursor:hover .lc-label{opacity:1;transform:translateX(0)}
     .lc-presence{position:fixed;top:12px;right:12px;z-index:999998;display:flex;align-items:center;background:rgba(255,255,255,.85);backdrop-filter:blur(8px);padding:4px 10px 4px 6px;border-radius:20px;box-shadow:0 1px 6px rgba(0,0,0,.08);border:1px solid rgba(0,0,0,.06)}
+    .lc-presence.lc-presence--mounted{position:static;background:none;backdrop-filter:none;box-shadow:none;border:none;padding:0}
     .lc-presence-avatars{display:flex;align-items:center}
     .lc-presence .lc-p-avatar{width:28px;height:28px;border-radius:50%;border:2px solid #fff;margin-left:-6px;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font:600 11px/1 system-ui;color:#fff;cursor:pointer;text-decoration:none;transition:margin-left .3s ease,transform .2s}
     .lc-presence .lc-p-avatar:first-child{margin-left:0}
@@ -32,7 +35,15 @@ export function getEmbedJS(origin: string): string {
   var cursorsDiv=document.createElement("div");cursorsDiv.id="lc-cursors";document.body.appendChild(cursorsDiv);
   var presenceDiv=document.createElement("div");presenceDiv.className="lc-presence";presenceDiv.id="lc-presence";
   presenceDiv.innerHTML='<div class="lc-presence-avatars" id="lc-pa"></div><span class="lc-p-count" id="lc-pc">0</span>';
-  document.body.appendChild(presenceDiv);
+
+  /* mount presence bar: custom selector > body (fixed) */
+  if(presenceSelector){
+    var mountEl=document.querySelector(presenceSelector);
+    if(mountEl){presenceDiv.classList.add("lc-presence--mounted");mountEl.appendChild(presenceDiv);}
+    else{document.body.appendChild(presenceDiv);}
+  } else {
+    document.body.appendChild(presenceDiv);
+  }
 
   var ws,selfId,users=new Map(),lastSend=0,lastX=-1,lastY=-1,reconnectDelay=1000;
 

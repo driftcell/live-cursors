@@ -51,6 +51,8 @@ header nav{margin-left:auto;display:flex;align-items:center;gap:16px}
   font:700 11px/1 system-ui;box-shadow:0 1px 4px rgba(0,0,0,.1);
 }
 .presence-count{font:500 13px/1 system-ui;color:var(--muted);white-space:nowrap}
+/* mounted 到自定义容器时，presence 仅保留内部排版，外观由宿主控制 */
+.presence.presence--mounted{background:none;box-shadow:none;border:none;padding:0}
 
 /* ── auth ── */
 .btn-login{
@@ -150,7 +152,11 @@ footer a:hover{text-decoration:underline}
   box-shadow:0 1px 4px rgba(0,0,0,.12);display:flex;align-items:center;justify-content:center;
   color:#fff;font:bold 10px/1 system-ui;
 }
-.cursor-label{padding:1px 6px;border-radius:4px;font:500 11px/1.4 system-ui;color:#fff;white-space:nowrap}
+.cursor-label{
+  padding:1px 6px;border-radius:4px;font:500 11px/1.4 system-ui;color:#fff;white-space:nowrap;
+  opacity:0;transform:translateX(-3px);transition:opacity .15s,transform .15s;
+}
+.remote-cursor:hover .cursor-label{opacity:1;transform:translateX(0)}
 
 /* ── status indicator ── */
 .ws-status{
@@ -172,10 +178,7 @@ footer a:hover{text-decoration:underline}
 <header>
   <div class="logo"><span>✦</span> Live Cursors</div>
   <nav>
-    <div class="presence" id="presence">
-      <div class="presence-avatars" id="presenceAvatars"></div>
-      <span class="presence-count" id="presenceCount"></span>
-    </div>
+    <div id="presenceSlot"></div>
     <div id="authSection"></div>
   </nav>
 </header>
@@ -235,6 +238,25 @@ footer a:hover{text-decoration:underline}
   var reconnectDelay = 1000;
   var reconnectTimer = null;
 
+  // ── presence bar DOM ──
+  // Build the presence widget once, then mount it to:
+  //   1. A user-supplied element matching [id="lc-presence-mount"] (custom mount)
+  //   2. The default #presenceSlot in the header (fallback)
+  var presenceEl = document.createElement("div");
+  presenceEl.className = "presence";
+  presenceEl.id = "presence";
+  presenceEl.innerHTML = '<div class="presence-avatars" id="presenceAvatars"></div><span class="presence-count" id="presenceCount"></span>';
+
+  function mountPresence() {
+    var custom = document.getElementById("lc-presence-mount");
+    if (custom) {
+      presenceEl.classList.add("presence--mounted");
+      custom.appendChild(presenceEl);
+    } else {
+      document.getElementById("presenceSlot").appendChild(presenceEl);
+    }
+  }
+
   // ── init ──
   (function init() {
     var params = new URLSearchParams(location.search);
@@ -244,6 +266,7 @@ footer a:hover{text-decoration:underline}
       history.replaceState({}, "", "/");
     }
     document.getElementById("embedUrl").textContent = location.origin + "/embed.js";
+    mountPresence();
     updateAuthUI();
     connect();
   })();
