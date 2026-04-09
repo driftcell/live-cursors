@@ -3,7 +3,8 @@ export function getEmbedJS(origin: string): string {
   var script=document.currentScript;
   var ORIGIN=${JSON.stringify(origin)};
 
-  /* ── configuration ── */
+  /* ── configuration (read synchronously while currentScript is valid) ── */
+  function attr(n){return script&&script.getAttribute(n)||"";}
   var room=attr("data-room")||location.pathname;
   var presenceSelector=attr("data-presence");
   var containerSelector=attr("data-container");
@@ -11,7 +12,8 @@ export function getEmbedJS(origin: string): string {
   var showPresence=attr("data-show-presence")!=="false";
   var countAnonymous=attr("data-count-anonymous")!=="false";
   var throttleMs=parseInt(attr("data-throttle")||"50",10)||50;
-  function attr(n){return script&&script.getAttribute(n)||"";}
+
+  function init(){
 
   /* ── styles ── */
   var style=document.createElement("style");
@@ -98,7 +100,7 @@ export function getEmbedJS(origin: string): string {
 
   function connect(){
     var proto=location.protocol==="https:"?"wss:":"ws:";
-    ws=new WebSocket(proto+"//"+ORIGIN.replace(/^https?:\\\\/\\\\//,"")+"/ws?room="+encodeURIComponent(room));
+    ws=new WebSocket(proto+"//"+ORIGIN.replace(new RegExp("^https?://"),"")+"/ws?room="+encodeURIComponent(room));
     ws.onopen=function(){reconnectDelay=1000};
     ws.onmessage=function(e){try{handle(JSON.parse(e.data))}catch(x){}};
     ws.onclose=function(){ws=null;setTimeout(connect,reconnectDelay);reconnectDelay=Math.min(reconnectDelay*1.5,30000)};
@@ -244,5 +246,12 @@ export function getEmbedJS(origin: string): string {
   window.addEventListener("beforeunload",closeWs);
   window.addEventListener("pagehide",closeWs);
   connect();
+  } // end init
+
+  if(document.readyState==="loading"){
+    document.addEventListener("DOMContentLoaded",init);
+  } else {
+    init();
+  }
 })();`;
 }
