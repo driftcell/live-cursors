@@ -1,0 +1,15 @@
+name = "live-cursors"
+main = "src/index.ts"
+compatibility_date = "2026-04-09"
+
+[vars]
+GITHUB_CLIENT_ID = ""
+
+[durable_objects]
+bindings = [
+  { name = "CURSOR_ROOM", class_name = "CursorRoom" }
+]
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["CursorRoom"]
