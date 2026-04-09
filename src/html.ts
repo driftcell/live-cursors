@@ -657,7 +657,7 @@ footer a:hover{text-decoration:underline}
       '  data-count-anonymous="true"',
       '  data-throttle="50"',
       '></' + 'script>'
-    ].join('\n');
+    ].join('\\n');
     navigator.clipboard.writeText(code).then(function() {
       var btn = document.querySelector(".copy-btn");
       btn.textContent = "Copied!";
