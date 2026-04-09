@@ -43,7 +43,6 @@ export function getEmbedJS(origin: string): string {
     .lc-presence .lc-p-avatar:hover{transform:scale(1.1);z-index:10}
     .lc-presence .lc-p-avatar img{width:100%;height:100%;object-fit:cover}
     .lc-p-overflow{width:28px;height:28px;border-radius:50%;border:2px solid #fff;margin-left:-6px;background:#6b7280;color:#fff;display:flex;align-items:center;justify-content:center;font:700 10px/1 system-ui}
-    .lc-p-count{font:500 12px/1 system-ui;color:#6b7280;margin-left:6px}
   \`;
   document.head.appendChild(style);
 
@@ -54,7 +53,7 @@ export function getEmbedJS(origin: string): string {
   var presenceDiv=null;
   if(showPresence){
     presenceDiv=document.createElement("div");presenceDiv.className="lc-presence";presenceDiv.id="lc-presence";
-    presenceDiv.innerHTML='<div class="lc-presence-avatars" id="lc-pa"></div><span class="lc-p-count" id="lc-pc">0</span>';
+    presenceDiv.innerHTML='<div class="lc-presence-avatars" id="lc-pa"></div>';
     if(presenceSelector){
       var mountEl=document.querySelector(presenceSelector);
       if(mountEl){presenceDiv.classList.add("lc-presence--mounted");mountEl.appendChild(presenceDiv);}
@@ -192,7 +191,7 @@ export function getEmbedJS(origin: string): string {
 
   function updatePresence(){
     if(!showPresence||!presenceDiv)return;
-    var pa=document.getElementById("lc-pa"),pc=document.getElementById("lc-pc");if(!pa)return;pa.innerHTML="";
+    var pa=document.getElementById("lc-pa");if(!pa)return;pa.innerHTML="";
     var arr=Array.from(users.values());
     var filtered=countAnonymous?arr:arr.filter(function(u){return !!u.avatar;});
     var vis=filtered.slice(0,5),over=filtered.length-vis.length;
@@ -201,7 +200,6 @@ export function getEmbedJS(origin: string): string {
       else{var d=document.createElement("div");d.className="lc-p-avatar";d.style.backgroundColor=u.color;d.style.zIndex=String(100-i);d.title=u.username;d.textContent=u.username[0];pa.appendChild(d);}
     });
     if(over>0){var b=document.createElement("div");b.className="lc-p-overflow";b.textContent="+"+over;pa.appendChild(b);}
-    pc.textContent=filtered.length+" online";
   }
 
   /* ── update edges on scroll ── */
@@ -242,7 +240,9 @@ export function getEmbedJS(origin: string): string {
     if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:"cursor",xRatio:pos.xRatio,yOffset:pos.yOffset,inputType:inputType,containerHeight:pos.containerHeight}));
   }
 
-  window.addEventListener("beforeunload",function(){if(ws)ws.close()});
+  function closeWs(){if(ws){ws.close();ws=null;}}
+  window.addEventListener("beforeunload",closeWs);
+  window.addEventListener("pagehide",closeWs);
   connect();
 })();`;
 }

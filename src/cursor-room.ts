@@ -27,8 +27,8 @@ const COLORS = [
 const ANIMALS = ['Fox', 'Owl', 'Cat', 'Bear', 'Wolf', 'Deer', 'Hawk', 'Lynx', 'Seal', 'Wren'];
 const ADJS = ['Swift', 'Quiet', 'Bold', 'Warm', 'Calm', 'Keen', 'Wise', 'Free', 'Soft', 'Wild'];
 
-const PING_INTERVAL = 30_000;  // send ping every 30s
-const DEAD_THRESHOLD = 70_000; // close if no pong for 70s
+const PING_INTERVAL = 20_000;  // send ping every 20s
+const DEAD_THRESHOLD = 45_000; // close if no pong for 45s
 
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
