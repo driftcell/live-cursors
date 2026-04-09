@@ -13,3 +13,10 @@ bindings = [
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["CursorRoom"]
+
+[observability]
+enabled = true
+
+[observability.logs]
+enabled = true
+invocation_logs = true

@@ -12,44 +12,64 @@ export interface Env {
   JWT_SECRET: string;
 }
 
+function log(level: 'INFO' | 'WARN' | 'ERROR', event: string, data?: Record<string, unknown>) {
+  console.log(JSON.stringify({ level, event, ts: new Date().toISOString(), ...data }));
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+    const cf = request.cf as Record<string, unknown> | undefined;
+    const start = Date.now();
+
+    const respond = (res: Response) => {
+      log('INFO', 'request', {
+        method: request.method,
+        path: url.pathname,
+        status: res.status,
+        ms: Date.now() - start,
+        country: cf?.country,
+        colo: cf?.colo,
+      });
+      return res;
+    };
 
     if (url.pathname === '/' || url.pathname === '/index.html') {
-      return new Response(getMainHTML(env.GITHUB_CLIENT_ID || ''), {
+      return respond(new Response(getMainHTML(env.GITHUB_CLIENT_ID || ''), {
         headers: { 'Content-Type': 'text/html; charset=utf-8' },
-      });
+      }));
     }
 
     if (url.pathname === '/embed.js') {
-      return new Response(getEmbedJS(url.origin), {
+      return respond(new Response(getEmbedJS(url.origin), {
         headers: {
           'Content-Type': 'application/javascript; charset=utf-8',
           'Access-Control-Allow-Origin': '*',
           'Cache-Control': 'public, max-age=3600',
         },
-      });
+      }));
     }
 
     if (url.pathname === '/auth/login') {
       if (!env.GITHUB_CLIENT_ID) {
-        return new Response('GitHub OAuth not configured', { status: 503 });
+        log('WARN', 'auth_login_no_client_id');
+        return respond(new Response('GitHub OAuth not configured', { status: 503 }));
       }
+      log('INFO', 'auth_login_redirect');
       const redirectUri = `${url.origin}/auth/callback`;
       const gh = `https://github.com/login/oauth/authorize?client_id=${env.GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=read:user`;
-      return Response.redirect(gh, 302);
+      return respond(Response.redirect(gh, 302));
     }
 
     if (url.pathname === '/auth/callback') {
-      return handleOAuthCallback(url, env);
+      return respond(await handleOAuthCallback(url, env));
     }
 
     // WebSocket → Durable Object
     if (url.pathname === '/ws') {
       const upgradeHeader = request.headers.get('Upgrade');
       if (!upgradeHeader || upgradeHeader !== 'websocket') {
-        return new Response('Expected WebSocket', { status: 426 });
+        return respond(new Response('Expected WebSocket', { status: 426 }));
       }
 
       const room = url.searchParams.get('room') || '/';
@@ -67,7 +87,12 @@ export default {
             url: payload.url,
             color: '',
           };
+          log('INFO', 'ws_authed', { room, username: payload.username });
+        } else {
+          log('WARN', 'ws_invalid_token', { room });
         }
+      } else {
+        log('INFO', 'ws_anonymous', { room });
       }
 
       const id = env.CURSOR_ROOM.idFromName(room);
@@ -82,10 +107,10 @@ export default {
     }
 
     if (url.pathname === '/health') {
-      return new Response('OK');
+      return respond(new Response('OK'));
     }
 
-    return new Response('Not Found', { status: 404 });
+    return respond(new Response('Not Found', { status: 404 }));
   },
 };
 
@@ -108,6 +133,7 @@ async function handleOAuthCallback(url: URL, env: Env): Promise<Response> {
 
     const tokenData = (await tokenRes.json()) as { access_token?: string; error?: string };
     if (!tokenData.access_token) {
+      log('WARN', 'auth_callback_no_token', { error: tokenData.error });
       return new Response(`OAuth error: ${tokenData.error ?? 'unknown'}`, { status: 400 });
     }
 
@@ -115,6 +141,8 @@ async function handleOAuthCallback(url: URL, env: Env): Promise<Response> {
       headers: { Authorization: `Bearer ${tokenData.access_token}`, 'User-Agent': 'LiveCursors/1.0' },
     });
     const u = (await userRes.json()) as { id: number; login: string; avatar_url: string; html_url: string };
+
+    log('INFO', 'auth_callback_success', { username: u.login });
 
     const jwt = await signJWT(
       { sub: String(u.id), username: u.login, avatar: u.avatar_url, url: u.html_url },
@@ -126,6 +154,7 @@ async function handleOAuthCallback(url: URL, env: Env): Promise<Response> {
       headers: { Location: `${url.origin}/?token=${jwt}` },
     });
   } catch (err) {
+    log('ERROR', 'auth_callback_error', { error: String(err) });
     return new Response(`OAuth failed: ${err}`, { status: 500 });
   }
 }

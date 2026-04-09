@@ -62,13 +62,21 @@ header nav{margin-left:auto;display:flex;align-items:center;gap:16px}
 }
 .btn-login:hover{background:#1b1f23}
 .btn-login svg{width:18px;height:18px;fill:currentColor}
-.user-badge{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--text);font:500 13px/1 system-ui}
-.user-badge img{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border)}
-.btn-logout{
-  background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;
-  font:500 12px/1 system-ui;color:var(--muted);cursor:pointer;transition:all .2s;
+.user-info{display:flex;align-items:center;gap:10px}
+.username-link{font:500 13px/1 system-ui;color:var(--text);text-decoration:none}
+.username-link:hover{text-decoration:underline}
+.avatar-logout{
+  width:30px;height:30px;border-radius:50%;padding:0;background:none;border:1.5px solid var(--border);
+  overflow:hidden;cursor:pointer;position:relative;flex-shrink:0;transition:border-color .2s,transform .2s;
 }
-.btn-logout:hover{border-color:var(--muted);color:var(--text)}
+.avatar-logout:hover{border-color:#ef4444;transform:scale(1.08)}
+.avatar-logout img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
+.avatar-logout::after{
+  content:'✕';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(220,38,38,.75);color:#fff;font:700 13px/1 system-ui;
+  opacity:0;transition:opacity .18s;border-radius:50%;
+}
+.avatar-logout:hover::after{opacity:1}
 
 /* ── hero ── */
 .hero{
@@ -278,10 +286,11 @@ footer a:hover{text-decoration:underline}
       var p = parseJWT(token);
       if (p && p.exp > Date.now() / 1000) {
         el.innerHTML =
-          '<a class="user-badge" href="' + esc(p.url) + '" target="_blank">' +
+          '<div class="user-info">' +
+          '<a class="username-link" href="' + esc(p.url) + '" target="_blank">' + esc(p.username) + '</a>' +
+          '<button class="avatar-logout" onclick="window.__lcLogout()" title="Sign out">' +
           '<img src="' + esc(p.avatar) + '" alt="' + esc(p.username) + '">' +
-          '<span>' + esc(p.username) + '</span></a> ' +
-          '<button class="btn-logout" onclick="window.__lcLogout()">Logout</button>';
+          '</button></div>';
         return;
       }
       // expired
@@ -360,6 +369,9 @@ footer a:hover{text-decoration:underline}
   // ── message handler ──
   function handle(msg) {
     switch (msg.type) {
+      case "ping":
+        if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "pong" }));
+        break;
       case "init":
         selfId = msg.self;
         msg.users.forEach(function(u) { if (u.id !== selfId) addUser(u); });

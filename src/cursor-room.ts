@@ -15,6 +15,7 @@ interface UserInfo {
   color: string;
   x: number;
   y: number;
+  lastPong: number;
 }
 
 const COLORS = [
@@ -24,8 +25,15 @@ const COLORS = [
 const ANIMALS = ['Fox', 'Owl', 'Cat', 'Bear', 'Wolf', 'Deer', 'Hawk', 'Lynx', 'Seal', 'Wren'];
 const ADJS = ['Swift', 'Quiet', 'Bold', 'Warm', 'Calm', 'Keen', 'Wise', 'Free', 'Soft', 'Wild'];
 
+const PING_INTERVAL = 30_000;  // send ping every 30s
+const DEAD_THRESHOLD = 70_000; // close if no pong for 70s
+
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function doLog(level: 'INFO' | 'WARN', event: string, data?: Record<string, unknown>) {
+  console.log(JSON.stringify({ level, event, ts: new Date().toISOString(), ...data }));
 }
 
 export class CursorRoom extends DurableObject<Env> {
@@ -34,6 +42,21 @@ export class CursorRoom extends DurableObject<Env> {
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     this.sessions = new Map();
+    setInterval(() => this.heartbeat(), PING_INTERVAL);
+  }
+
+  private heartbeat() {
+    if (this.sessions.size === 0) return;
+    const now = Date.now();
+    this.sessions.forEach((user, ws) => {
+      if (now - user.lastPong > DEAD_THRESHOLD) {
+        doLog('WARN', 'do_dead_connection', { username: user.username, id: user.id, silentMs: now - user.lastPong });
+        this.handleClose(ws);
+        try { ws.close(1001, 'Heartbeat timeout'); } catch { /* already closed */ }
+      } else {
+        try { ws.send(JSON.stringify({ type: 'ping' })); } catch { /* dead socket */ }
+      }
+    });
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -47,7 +70,7 @@ export class CursorRoom extends DurableObject<Env> {
 
     if (userInfoHeader) {
       const parsed = JSON.parse(userInfoHeader);
-      user = { ...parsed, x: -1, y: -1 };
+      user = { ...parsed, x: -1, y: -1, lastPong: Date.now() };
     } else {
       user = {
         id: crypto.randomUUID(),
@@ -57,6 +80,7 @@ export class CursorRoom extends DurableObject<Env> {
         color: pick(COLORS),
         x: -1,
         y: -1,
+        lastPong: Date.now(),
       };
     }
 
@@ -68,6 +92,8 @@ export class CursorRoom extends DurableObject<Env> {
 
     server.accept();
     this.sessions.set(server, user);
+
+    doLog('INFO', 'do_join', { username: user.username, id: user.id, room: this.ctx.id.toString(), total: this.sessions.size });
 
     // Tell the new client about existing users
     server.send(JSON.stringify({ type: 'init', self: user.id, users: currentUsers }));
@@ -99,6 +125,11 @@ export class CursorRoom extends DurableObject<Env> {
   private handleMessage(ws: WebSocket, raw: string) {
     try {
       const data = JSON.parse(raw);
+      if (data.type === 'pong') {
+        const user = this.sessions.get(ws);
+        if (user) user.lastPong = Date.now();
+        return;
+      }
       if (data.type === 'cursor') {
         const user = this.sessions.get(ws);
         if (!user) return;
@@ -115,6 +146,7 @@ export class CursorRoom extends DurableObject<Env> {
     const user = this.sessions.get(ws);
     if (user) {
       this.sessions.delete(ws);
+      doLog('INFO', 'do_leave', { username: user.username, id: user.id, remaining: this.sessions.size });
       this.broadcast(JSON.stringify({ type: 'leave', id: user.id }));
     }
     try {
