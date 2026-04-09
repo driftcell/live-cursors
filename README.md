@@ -2,15 +2,17 @@ See who's here — real-time collaborative cursors for any website.
 
 [![Live Demo](https://img.shields.io/badge/demo-live--cursors.driftcell.dev-6366f1?style=flat-square)](https://live-cursors.driftcell.dev/) [![Cloudflare Workers](https://img.shields.io/badge/powered%20by-Cloudflare%20Workers-f38020?style=flat-square&logo=cloudflare&logoColor=white)](https://developers.cloudflare.com/workers/)
 
-Move your cursor around — everyone sees each other in real-time. Built on **Cloudflare Workers** and **Durable Objects**, running entirely on the free tier.
+Move your cursor around — everyone sees each other in real-time. Scroll-aware, touch-friendly, works on any screen size. Built on **Cloudflare Workers** and **Durable Objects**, running entirely on the free tier.
 
 ## Features
 
 - ⚡ **Real-time Sync** — Cursor positions broadcast instantly via Durable Objects with WebSocket connections.
-- 🎨 **Smooth Animation** — CSS-powered transitions at ~10fps for fluid motion without frame-by-frame jumps.
+- 🎯 **Scroll & Screen Aware** — Document-absolute coordinates ensure cursors point at the same content regardless of viewport size or scroll position. X-axis uses container-relative percentages for responsive layouts; Y-axis uses absolute pixel offsets so cursors always land on the right paragraph.
+- 📱 **Touch Friendly** — Touch devices get a distinct soft-circle cursor that fades naturally when the finger lifts.
+- 🔭 **Edge Indicators** — When a remote cursor is outside your viewport, a clickable badge appears at the screen edge showing who's above or below. Click to scroll to them.
 - 🔐 **GitHub OAuth** — Optional sign-in shows your avatar on cursors and the presence bar.
 - 🌐 **Zero Cost** — Built entirely on Cloudflare's free tier. No servers to maintain.
-- 📦 **Embed SDK** — One line of code adds live cursors to any page.
+- 📦 **Embed SDK** — One line of code adds live cursors to any page with rich configuration.
 
 ## Demo
 
@@ -24,10 +26,31 @@ Add a single script tag to any page:
 <script src="https://live-cursors.driftcell.dev/embed.js" data-presence="#your-element"></script>
 ```
 
-| Attribute | Required | Description |
+### Configuration
+
+All options are set via `data-*` attributes on the script tag:
+
+| Attribute | Default | Description |
 | --- | --- | --- |
-| `src` | ✅ | The embed script URL |
-| `data-presence` | ❌ | CSS selector to mount the presence bar into your own element. Omit to use the default floating position. |
+| `src` | *(required)* | The embed script URL |
+| `data-room` | Current page path | Room identifier — users in the same room see each other |
+| `data-presence` | *(floating corner)* | CSS selector to mount the presence bar into your own element |
+| `data-container` | `document.documentElement` | CSS selector for the content container used as the coordinate anchor. Use this when your page has a centered `max-width` layout (e.g. `data-container=".content-wrapper"`) so cursors align to content, not viewport edges. |
+| `data-show-cursors` | `"true"` | Set to `"false"` to hide remote cursors (presence bar still works) |
+| `data-show-presence` | `"true"` | Set to `"false"` to hide the presence bar |
+| `data-count-anonymous` | `"true"` | Set to `"false"` to exclude anonymous (non-OAuth) users from the online count and presence avatars |
+| `data-throttle` | `"50"` | Cursor send throttle in milliseconds. Lower = smoother but more bandwidth |
+
+### Example: Centered blog layout
+
+```html
+<script
+  src="https://live-cursors.driftcell.dev/embed.js"
+  data-container="article"
+  data-presence="#header-presence"
+  data-throttle="40"
+></script>
+```
 
 ## Self-Hosting
 
@@ -91,6 +114,17 @@ npx wrangler deploy
 - **Worker** — Handles HTTP requests, serves the landing page, proxies WebSocket upgrades.
 - **Durable Object** — One instance per room. Manages connected clients, broadcasts cursor positions, and tracks presence.
 - **Embed SDK** — A lightweight script that connects to the room scoped by the host page's origin + pathname.
+
+### Coordinate System
+
+Coordinates are anchored to a **content container** (not the viewport) to work correctly across different screen sizes and scroll positions:
+
+| Axis | Encoding | Why |
+| --- | --- | --- |
+| **X** | Container-relative percentage `[0, 1]` | Handles responsive/different widths — 50% of the content area is semantically the same spot |
+| **Y** | Absolute pixel offset from container top | Content height is (nearly) identical across clients, so pixel offsets map to the same paragraph/element |
+
+The receiver converts document-absolute positions back to local viewport coordinates, accounting for their own scroll position. Cursors outside the visible viewport are shown as **edge indicators** — clickable badges at the top/bottom of the screen.
 
 
 ## License

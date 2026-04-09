@@ -147,13 +147,21 @@ footer a:hover{text-decoration:underline}
 /* ── remote cursors ── */
 .remote-cursor{
   position:fixed;pointer-events:none;z-index:9999;
-  transition:left 100ms linear,top 100ms linear;opacity:0;
+  transition:left 80ms linear,top 80ms linear;opacity:0;
   will-change:left,top;
 }
-.remote-cursor.active{opacity:1;transition:left 100ms linear,top 100ms linear,opacity .3s}
+.remote-cursor.active{opacity:1;transition:left 80ms linear,top 80ms linear,opacity .3s}
 .remote-cursor.leaving{opacity:0;transition:opacity .3s}
+.remote-cursor.touch .cursor-arrow{display:none}
+.remote-cursor.touch .cursor-touch-dot{display:flex}
 .cursor-arrow{display:block}
+.cursor-touch-dot{
+  display:none;width:28px;height:28px;border-radius:50%;opacity:.55;
+  border:2px solid #fff;box-shadow:0 0 8px rgba(0,0,0,.15);
+  margin-left:-14px;margin-top:-14px;align-items:center;justify-content:center;
+}
 .cursor-info{display:flex;align-items:center;gap:4px;margin-left:10px;margin-top:-2px}
+.remote-cursor.touch .cursor-info{margin-left:-4px;margin-top:14px}
 .cursor-avatar{width:20px;height:20px;border-radius:50%;border:1.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.12)}
 .cursor-dot{
   width:20px;height:20px;border-radius:50%;border:1.5px solid #fff;
@@ -165,6 +173,20 @@ footer a:hover{text-decoration:underline}
   opacity:0;transform:translateX(-3px);transition:opacity .15s,transform .15s;
 }
 .remote-cursor:hover .cursor-label{opacity:1;transform:translateX(0)}
+
+/* ── edge indicators ── */
+.edge-indicator{
+  position:fixed;z-index:9998;display:flex;align-items:center;gap:4px;
+  padding:3px 8px 3px 4px;border-radius:12px;font:500 11px/1 system-ui;
+  color:#fff;white-space:nowrap;cursor:pointer;opacity:.8;
+  transition:opacity .2s,transform .15s;pointer-events:auto;
+}
+.edge-indicator:hover{opacity:1;transform:scale(1.06)}
+.edge-indicator .ei-av{
+  width:18px;height:18px;border-radius:50%;flex-shrink:0;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;font:bold 9px/1 system-ui;color:#fff;
+}
+.edge-indicator .ei-av img{width:100%;height:100%;object-fit:cover}
 
 /* ── status indicator ── */
 .ws-status{
@@ -194,7 +216,7 @@ footer a:hover{text-decoration:underline}
 <main>
   <section class="hero">
     <h1>See who's here ✦</h1>
-    <p>Move your cursor around — everyone sees each other in real-time. Powered by Cloudflare Workers&nbsp;&amp;&nbsp;Durable&nbsp;Objects.</p>
+    <p>Move your cursor around — everyone sees each other in real-time. Scroll-aware, touch-friendly, works on any screen size. Powered by Cloudflare Workers&nbsp;&amp;&nbsp;Durable&nbsp;Objects.</p>
     <div class="hero-actions">
       <a href="https://github.com/driftcell/live-cursors" target="_blank" class="btn-primary">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
@@ -206,8 +228,11 @@ footer a:hover{text-decoration:underline}
 
   <section class="features">
     <div class="feature-card"><div class="icon">⚡</div><h3>Real-time Sync</h3><p>Cursor positions broadcast instantly via Durable Objects with WebSocket connections.</p></div>
-    <div class="feature-card"><div class="icon">🎨</div><h3>Smooth Animation</h3><p>CSS-powered transitions at ~10fps for fluid motion without frame-by-frame jumps.</p></div>
+    <div class="feature-card"><div class="icon">🎯</div><h3>Scroll &amp; Screen Aware</h3><p>Document-absolute coordinates ensure cursors point at the same content regardless of viewport size or scroll position.</p></div>
+    <div class="feature-card"><div class="icon">📱</div><h3>Touch Friendly</h3><p>Touch devices get a distinct soft-circle cursor that fades naturally when the finger lifts.</p></div>
+    <div class="feature-card"><div class="icon">🔐</div><h3>GitHub OAuth</h3><p>Optional sign-in shows your avatar on cursors and the presence bar.</p></div>
     <div class="feature-card"><div class="icon">🌐</div><h3>Zero Cost</h3><p>Built entirely on Cloudflare's free tier — Workers, Durable Objects, no servers to maintain.</p></div>
+    <div class="feature-card"><div class="icon">📦</div><h3>Embed SDK</h3><p>One script tag adds live cursors to any page, with rich configuration options.</p></div>
   </section>
 
   <section class="embed-section" id="embed">
@@ -223,6 +248,7 @@ footer a:hover{text-decoration:underline}
 <footer>Made with ♥ on <a href="https://developers.cloudflare.com/workers/" target="_blank">Cloudflare Workers</a></footer>
 
 <div id="cursors"></div>
+<div id="edges"></div>
 
 <div class="ws-status" id="wsStatus">
   <span class="ws-dot connecting" id="wsDot"></span>
@@ -235,16 +261,18 @@ footer a:hover{text-decoration:underline}
 
   var GITHUB_CLIENT_ID = ${JSON.stringify(clientId)};
   var MAX_VISIBLE = 5;
-  var THROTTLE = 100; // ms (~10 fps)
+  var THROTTLE = 50; // ms (~20 fps)
+  var CONTAINER_SEL = "main"; // content container for coordinate anchoring
 
   // ── state ──
   var ws = null;
   var selfId = null;
   var token = localStorage.getItem("lc_token");
   var users = new Map();
-  var lastSend = 0, lastX = -1, lastY = -1;
+  var lastSend = 0, lastXR = -1, lastYO = -1;
   var reconnectDelay = 1000;
   var reconnectTimer = null;
+  var touchFadeTimers = {};
 
   // ── presence bar DOM ──
   // Build the presence widget once, then mount it to:
@@ -335,6 +363,33 @@ footer a:hover{text-decoration:underline}
       '<path d="M0.5 0.5L0.5 17L5 12.5H13Z" fill="' + color + '" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/></svg>';
   }
 
+  // ── coordinate helpers (container-based, scroll-aware) ──
+  function getContainer() {
+    return document.querySelector(CONTAINER_SEL) || document.documentElement;
+  }
+
+  function getCursorPos(clientX, clientY) {
+    var c = getContainer();
+    var r = c.getBoundingClientRect();
+    var sy = window.scrollY || window.pageYOffset || 0;
+    var sx = window.scrollX || window.pageXOffset || 0;
+    return {
+      xRatio: (clientX - r.left) / r.width,
+      yOffset: (clientY + sy) - (r.top + sy),
+      containerHeight: c.scrollHeight
+    };
+  }
+
+  function resolvePos(pos) {
+    var c = getContainer();
+    var r = c.getBoundingClientRect();
+    var sy = window.scrollY || window.pageYOffset || 0;
+    var cdt = r.top + sy;
+    var lx = r.left + pos.xRatio * r.width;
+    var ly = (cdt + pos.yOffset) - sy;
+    return { x: lx, y: ly, vis: ly >= -30 && ly <= window.innerHeight + 30 };
+  }
+
   // ── WebSocket ──
   function connect() {
     setStatus("connecting");
@@ -348,9 +403,11 @@ footer a:hover{text-decoration:underline}
     ws.onmessage = function(e) { try { handle(JSON.parse(e.data)); } catch(x){} };
     ws.onclose = function() {
       ws = null; setStatus("disconnected");
-      // Clear all remote cursors on disconnect
-      users.forEach(function(u) { if(u.el) u.el.remove(); });
+      // Clear all remote cursors and edge indicators on disconnect
+      users.forEach(function(u) { if(u.el) u.el.remove(); if(u.edgeEl) u.edgeEl.remove(); });
       users.clear(); updatePresenceBar();
+      Object.keys(touchFadeTimers).forEach(function(k) { clearTimeout(touchFadeTimers[k]); });
+      touchFadeTimers = {};
       scheduleReconnect();
     };
     ws.onerror = function() {};
@@ -390,7 +447,7 @@ footer a:hover{text-decoration:underline}
         updatePresenceBar();
         break;
       case "cursor":
-        moveCursor(msg.id, msg.x, msg.y);
+        moveCursor(msg);
         break;
       case "leave":
         removeUser(msg.id);
@@ -406,6 +463,7 @@ footer a:hover{text-decoration:underline}
     el.className = "remote-cursor";
     var c = u.color || "#6366f1";
     el.innerHTML = cursorSVG(c) +
+      '<div class="cursor-touch-dot" style="background:' + c + '"></div>' +
       '<div class="cursor-info">' +
       (u.avatar
         ? '<img class="cursor-avatar" src="' + esc(u.avatar) + '" alt="' + esc(u.username) + '">'
@@ -413,15 +471,70 @@ footer a:hover{text-decoration:underline}
       '<span class="cursor-label" style="background:' + c + '">' + esc(u.username) + '</span>' +
       '</div>';
     document.getElementById("cursors").appendChild(el);
-    users.set(u.id, { username: u.username, avatar: u.avatar, url: u.url, color: c, el: el });
+    users.set(u.id, {
+      username: u.username, avatar: u.avatar, url: u.url, color: c, el: el, edgeEl: null,
+      xRatio: u.xRatio || -1, yOffset: u.yOffset || -1,
+      inputType: u.inputType || "mouse", containerHeight: u.containerHeight || 0
+    });
   }
 
-  function moveCursor(id, x, y) {
-    var u = users.get(id);
+  function moveCursor(msg) {
+    var u = users.get(msg.id);
     if (!u) return;
-    u.el.style.left = (x * 100) + "%";
-    u.el.style.top = (y * 100) + "%";
-    if (!u.el.classList.contains("active")) u.el.classList.add("active");
+    u.xRatio = msg.xRatio; u.yOffset = msg.yOffset;
+    u.inputType = msg.inputType || "mouse";
+    u.containerHeight = msg.containerHeight || 0;
+
+    // Touch class toggle
+    if (msg.inputType === "touch") u.el.classList.add("touch");
+    else u.el.classList.remove("touch");
+
+    // Clear pending touch fade timer
+    if (touchFadeTimers[msg.id]) { clearTimeout(touchFadeTimers[msg.id]); delete touchFadeTimers[msg.id]; }
+
+    var p = resolvePos(msg);
+    if (p.vis) {
+      u.el.style.left = p.x + "px";
+      u.el.style.top = p.y + "px";
+      if (!u.el.classList.contains("active")) u.el.classList.add("active");
+      removeEdge(msg.id);
+    } else {
+      u.el.classList.remove("active");
+      showEdge(msg.id, u, p);
+    }
+
+    // Touch cursors fade after inactivity
+    if (msg.inputType === "touch") {
+      touchFadeTimers[msg.id] = setTimeout(function() { u.el.classList.remove("active"); }, 3000);
+    }
+  }
+
+  function showEdge(id, u, p) {
+    var isTop = p.y < 0;
+    if (!u.edgeEl) {
+      u.edgeEl = document.createElement("div");
+      u.edgeEl.className = "edge-indicator";
+      var av = u.avatar
+        ? '<div class="ei-av"><img src="' + esc(u.avatar) + '"></div>'
+        : '<div class="ei-av" style="background:' + u.color + '">' + esc(u.username[0]) + '</div>';
+      u.edgeEl.innerHTML = av + " " + esc(u.username);
+      u.edgeEl.style.background = u.color;
+      u.edgeEl.onclick = function() {
+        var sy = window.scrollY || window.pageYOffset || 0;
+        window.scrollTo({ top: sy + (p.y - window.innerHeight / 2), behavior: "smooth" });
+      };
+      document.getElementById("edges").appendChild(u.edgeEl);
+    }
+    var cx = Math.max(8, Math.min(p.x, window.innerWidth - 120));
+    u.edgeEl.style.left = cx + "px";
+    if (isTop) { u.edgeEl.style.top = "64px"; u.edgeEl.style.bottom = ""; }
+    else { u.edgeEl.style.bottom = "8px"; u.edgeEl.style.top = ""; }
+  }
+
+  function removeEdge(id) {
+    var u = users.get(id);
+    if (!u || !u.edgeEl) return;
+    u.edgeEl.remove(); u.edgeEl = null;
   }
 
   function removeUser(id) {
@@ -429,6 +542,8 @@ footer a:hover{text-decoration:underline}
     if (!u) return;
     u.el.classList.remove("active");
     u.el.classList.add("leaving");
+    if (u.edgeEl) u.edgeEl.remove();
+    if (touchFadeTimers[id]) { clearTimeout(touchFadeTimers[id]); delete touchFadeTimers[id]; }
     setTimeout(function() { u.el.remove(); users.delete(id); }, 300);
   }
 
@@ -474,20 +589,45 @@ footer a:hover{text-decoration:underline}
 
   // ── mouse / touch tracking ──
   document.addEventListener("mousemove", function(e) {
-    throttledSend(e.clientX / window.innerWidth, e.clientY / window.innerHeight);
+    sendPos(e.clientX, e.clientY, "mouse");
   });
   document.addEventListener("touchmove", function(e) {
     var t = e.touches[0]; if (!t) return;
-    throttledSend(t.clientX / window.innerWidth, t.clientY / window.innerHeight);
-  });
+    sendPos(t.clientX, t.clientY, "touch");
+  }, { passive: true });
 
-  function throttledSend(x, y) {
+  function sendPos(cx, cy, inputType) {
     var now = Date.now();
     if (now - lastSend < THROTTLE) return;
-    if (Math.abs(x - lastX) < 0.001 && Math.abs(y - lastY) < 0.001) return;
-    lastX = x; lastY = y; lastSend = now;
-    if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "cursor", x: x, y: y }));
+    var pos = getCursorPos(cx, cy);
+    if (Math.abs(pos.xRatio - lastXR) < 0.001 && Math.abs(pos.yOffset - lastYO) < 1) return;
+    lastXR = pos.xRatio; lastYO = pos.yOffset; lastSend = now;
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify({
+      type: "cursor", xRatio: pos.xRatio, yOffset: pos.yOffset,
+      inputType: inputType, containerHeight: pos.containerHeight
+    }));
   }
+
+  // ── update positions on scroll ──
+  var scrollTick = false;
+  window.addEventListener("scroll", function() {
+    if (scrollTick) return; scrollTick = true;
+    requestAnimationFrame(function() {
+      scrollTick = false;
+      users.forEach(function(u, id) {
+        if (u.xRatio < 0) return;
+        var p = resolvePos(u);
+        if (p.vis) {
+          u.el.style.left = p.x + "px"; u.el.style.top = p.y + "px";
+          u.el.classList.add("active");
+          removeEdge(id);
+        } else {
+          u.el.classList.remove("active");
+          showEdge(id, u, p);
+        }
+      });
+    });
+  }, { passive: true });
 
   window.addEventListener("beforeunload", function() { if (ws) ws.close(); });
 

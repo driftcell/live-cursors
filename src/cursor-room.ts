@@ -13,8 +13,10 @@ interface UserInfo {
   avatar: string;
   url: string;
   color: string;
-  x: number;
-  y: number;
+  xRatio: number;
+  yOffset: number;
+  inputType: string;
+  containerHeight: number;
   lastPong: number;
 }
 
@@ -70,7 +72,7 @@ export class CursorRoom extends DurableObject<Env> {
 
     if (userInfoHeader) {
       const parsed = JSON.parse(userInfoHeader);
-      user = { ...parsed, x: -1, y: -1, lastPong: Date.now() };
+      user = { ...parsed, xRatio: -1, yOffset: -1, inputType: 'mouse', containerHeight: 0, lastPong: Date.now() };
     } else {
       user = {
         id: crypto.randomUUID(),
@@ -78,8 +80,10 @@ export class CursorRoom extends DurableObject<Env> {
         avatar: '',
         url: '',
         color: pick(COLORS),
-        x: -1,
-        y: -1,
+        xRatio: -1,
+        yOffset: -1,
+        inputType: 'mouse',
+        containerHeight: 0,
         lastPong: Date.now(),
       };
     }
@@ -133,9 +137,15 @@ export class CursorRoom extends DurableObject<Env> {
       if (data.type === 'cursor') {
         const user = this.sessions.get(ws);
         if (!user) return;
-        user.x = data.x;
-        user.y = data.y;
-        this.broadcast(JSON.stringify({ type: 'cursor', id: user.id, x: data.x, y: data.y }), ws);
+        user.xRatio = data.xRatio ?? 0;
+        user.yOffset = data.yOffset ?? 0;
+        user.inputType = data.inputType || 'mouse';
+        user.containerHeight = data.containerHeight || 0;
+        this.broadcast(JSON.stringify({
+          type: 'cursor', id: user.id,
+          xRatio: user.xRatio, yOffset: user.yOffset,
+          inputType: user.inputType, containerHeight: user.containerHeight,
+        }), ws);
       }
     } catch {
       // ignore malformed messages
@@ -163,8 +173,10 @@ export class CursorRoom extends DurableObject<Env> {
       avatar: u.avatar,
       url: u.url,
       color: u.color,
-      x: u.x,
-      y: u.y,
+      xRatio: u.xRatio,
+      yOffset: u.yOffset,
+      inputType: u.inputType,
+      containerHeight: u.containerHeight,
     }));
   }
 
