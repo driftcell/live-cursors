@@ -215,7 +215,7 @@ footer a:hover{text-decoration:underline}
     <p>One line of code gives any page live cursors. Use <code style="background:#f0f0f8;padding:1px 5px;border-radius:4px;font-size:13px">data-presence</code> to mount the presence bar into your own element — or omit it to float in the corner.</p>
     <div class="code-block" id="codeBlock">
       <button class="copy-btn" onclick="copyEmbed()">Copy</button>
-      <span class="tag">&lt;script</span> <span class="attr">src</span>=<span class="str">"<span id="embedUrl"></span>"</span><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="attr">data-presence</span>=<span class="str">"#your-element"</span><span class="tag">&gt;&lt;/script&gt;</span>
+      <span class="tag">&lt;script</span> <span class="attr">src</span>=<span class="str">"<span id="embedUrl"></span>"</span> <span class="attr">data-presence</span>=<span class="str">"#your-element"</span><span class="tag">&gt;&lt;/script&gt;</span>
     </div>
   </section>
 </main>
@@ -267,16 +267,21 @@ footer a:hover{text-decoration:underline}
 
   // ── init ──
   (function init() {
-    var params = new URLSearchParams(location.search);
-    if (params.get("token")) {
-      token = params.get("token");
-      localStorage.setItem("lc_token", token);
-      history.replaceState({}, "", "/");
+    try {
+      var params = new URLSearchParams(location.search);
+      if (params.get("token")) {
+        token = params.get("token");
+        localStorage.setItem("lc_token", token);
+        history.replaceState({}, "", "/");
+      }
+      var embedEl = document.getElementById("embedUrl");
+      if (embedEl) embedEl.textContent = location.origin + "/embed.js";
+      mountPresence();
+      updateAuthUI();
+      connect();
+    } catch (e) {
+      console.error("[live-cursors] init failed:", e);
     }
-    document.getElementById("embedUrl").textContent = location.origin + "/embed.js";
-    mountPresence();
-    updateAuthUI();
-    connect();
   })();
 
   // ── auth UI ──
@@ -285,9 +290,12 @@ footer a:hover{text-decoration:underline}
     if (token) {
       var p = parseJWT(token);
       if (p && p.exp > Date.now() / 1000) {
+        var avatarHTML = p.avatar
+          ? '<img src="' + esc(p.avatar) + '" alt="' + esc(p.username) + '">'
+          : '<span style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:var(--accent);color:#fff;font:700 13px/1 system-ui">' + esc((p.username || '?')[0]) + '</span>';
         el.innerHTML =
           '<button class="avatar-logout" onclick="window.__lcLogout()" title="Sign out (@' + esc(p.username) + ')">' +
-          '<img src="' + esc(p.avatar) + '" alt="' + esc(p.username) + '">' +
+          avatarHTML +
           '</button>';
         return;
       }
@@ -300,6 +308,8 @@ footer a:hover{text-decoration:underline}
         '<a class="btn-login" href="/auth/login">' +
         '<svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>' +
         'Sign in with GitHub</a>';
+    } else {
+      el.innerHTML = '<span style="color:var(--muted);font-size:12px">OAuth not configured</span>';
     }
   }
 
@@ -483,7 +493,7 @@ footer a:hover{text-decoration:underline}
 
   // ── copy embed code ──
   window.copyEmbed = function() {
-    var code = '<script src="' + location.origin + '/embed.js"\n        data-presence="#your-element"></' + 'script>';
+    var code = '<script src="' + location.origin + '/embed.js" data-presence="#your-element"></' + 'script>';
     navigator.clipboard.writeText(code).then(function() {
       var btn = document.querySelector(".copy-btn");
       btn.textContent = "Copied!";
