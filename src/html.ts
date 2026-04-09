@@ -212,11 +212,14 @@ footer a:hover{text-decoration:underline}
 
   <section class="embed-section" id="embed">
     <h2>📦 Add to Your Site</h2>
-    <p>One line of code gives any page live cursors.</p>
+    <p>One line of code gives any page live cursors. Use <code style="background:#f0f0f8;padding:1px 5px;border-radius:4px;font-size:13px">data-presence</code> to mount the online-users bar into your own element.</p>
     <div class="code-block" id="codeBlock">
       <button class="copy-btn" onclick="copyEmbed()">Copy</button>
-      <span class="tag">&lt;script</span> <span class="attr">src</span>=<span class="str">"<span id="embedUrl"></span>"</span><span class="tag">&gt;&lt;/script&gt;</span>
+      <div><span class="tag">&lt;script</span></div>
+      <div>&nbsp;&nbsp;<span class="attr">src</span>=<span class="str">"<span id="embedUrl"></span>"</span></div>
+      <div>&nbsp;&nbsp;<span class="attr">data-presence</span>=<span class="str">"#your-nav-element"</span><span class="tag">&gt;&lt;/script&gt;</span></div>
     </div>
+    <p style="margin-top:12px;font-size:13px;color:var(--muted)">Omit <code style="background:#f0f0f8;padding:1px 5px;border-radius:4px;font-size:12px">data-presence</code> and the bar floats in the bottom-right corner by default.</p>
   </section>
 </main>
 
@@ -287,8 +290,7 @@ footer a:hover{text-decoration:underline}
       if (p && p.exp > Date.now() / 1000) {
         el.innerHTML =
           '<div class="user-info">' +
-          '<a class="username-link" href="' + esc(p.url) + '" target="_blank">' + esc(p.username) + '</a>' +
-          '<button class="avatar-logout" onclick="window.__lcLogout()" title="Sign out">' +
+          '<button class="avatar-logout" onclick="window.__lcLogout()" title="Sign out (@' + esc(p.username) + ')">' +
           '<img src="' + esc(p.avatar) + '" alt="' + esc(p.username) + '">' +
           '</button></div>';
         return;
@@ -485,7 +487,7 @@ footer a:hover{text-decoration:underline}
 
   // ── copy embed code ──
   window.copyEmbed = function() {
-    var code = '<script src="' + location.origin + '/embed.js"></' + 'script>';
+    var code = '<script src="' + location.origin + '/embed.js"\n  data-presence="#your-nav-element"></' + 'script>';
     navigator.clipboard.writeText(code).then(function() {
       var btn = document.querySelector(".copy-btn");
       btn.textContent = "Copied!";
