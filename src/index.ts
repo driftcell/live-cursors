@@ -57,7 +57,9 @@ export default {
       }
       log('INFO', 'auth_login_redirect');
       const redirectUri = `${url.origin}/auth/callback`;
-      const gh = `https://github.com/login/oauth/authorize?client_id=${env.GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=read:user`;
+      const redirect = url.searchParams.get('redirect') || '';
+      const state = redirect ? btoa(JSON.stringify({ redirect })) : '';
+      const gh = `https://github.com/login/oauth/authorize?client_id=${env.GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=read:user${state ? '&state=' + encodeURIComponent(state) : ''}`;
       return respond(Response.redirect(gh, 302));
     }
 
@@ -149,9 +151,22 @@ async function handleOAuthCallback(url: URL, env: Env): Promise<Response> {
       env.JWT_SECRET,
     );
 
+    // If the login was initiated from an embedded page, redirect back there with the token
+    let destination = `${url.origin}/?token=${jwt}`;
+    const stateParam = url.searchParams.get('state') || '';
+    if (stateParam) {
+      try {
+        const stateData = JSON.parse(atob(stateParam));
+        if (stateData.redirect && /^https?:\/\//.test(stateData.redirect)) {
+          const sep = stateData.redirect.includes('?') ? '&' : '?';
+          destination = `${stateData.redirect}${sep}lc_token=${jwt}`;
+        }
+      } catch { /* ignore malformed state */ }
+    }
+
     return new Response(null, {
       status: 302,
-      headers: { Location: `${url.origin}/?token=${jwt}` },
+      headers: { Location: destination },
     });
   } catch (err) {
     log('ERROR', 'auth_callback_error', { error: String(err) });
