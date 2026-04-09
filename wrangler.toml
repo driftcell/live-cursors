@@ -3,7 +3,7 @@ main = "src/index.ts"
 compatibility_date = "2026-04-09"
 
 [vars]
-GITHUB_CLIENT_ID = ""
+GITHUB_CLIENT_ID = "Ov23liaqOx72rJwGmjJV"
 
 [durable_objects]
 bindings = [
