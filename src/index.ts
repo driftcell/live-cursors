@@ -1,7 +1,6 @@
 import { CursorRoom } from './cursor-room';
 import { signJWT, verifyJWT } from './auth';
 import { getMainHTML } from './html';
-import { getEmbedJS } from './embed';
 
 export { CursorRoom };
 
@@ -37,16 +36,6 @@ export default {
     if (url.pathname === '/' || url.pathname === '/index.html') {
       return respond(new Response(getMainHTML(env.GITHUB_CLIENT_ID || ''), {
         headers: { 'Content-Type': 'text/html; charset=utf-8' },
-      }));
-    }
-
-    if (url.pathname === '/embed.js') {
-      return respond(new Response(getEmbedJS(url.origin), {
-        headers: {
-          'Content-Type': 'application/javascript; charset=utf-8',
-          'Access-Control-Allow-Origin': '*',
-          'Cache-Control': 'public, max-age=3600',
-        },
       }));
     }
 

@@ -1,7 +1,6 @@
-export function getEmbedJS(origin: string): string {
-  return `(function(){
+(function(){
   var script=document.currentScript;
-  var ORIGIN=${JSON.stringify(origin)};
+  var ORIGIN=new URL(script.src).origin;
 
   /* ── configuration (read synchronously while currentScript is valid) ── */
   function attr(n){return script&&script.getAttribute(n)||"";}
@@ -15,7 +14,7 @@ export function getEmbedJS(origin: string): string {
   var throttleMs=parseInt(attr("data-throttle")||"50",10)||50;
 
   /* ── auth token (shared with the service via localStorage) ── */
-  var tokenKey="lc_token_"+ORIGIN.replace(/^https?:\\/\\//,"");
+  var tokenKey="lc_token_"+ORIGIN.replace(/^https?:\/\//,"");
   var lcToken=null;
   var selfUser=null;
 
@@ -47,7 +46,7 @@ export function getEmbedJS(origin: string): string {
 
   /* ── styles ── */
   var style=document.createElement("style");
-  style.textContent=\`
+  style.textContent=`
     .lc-cursor{position:fixed;pointer-events:none;z-index:999999;transition:left 80ms linear,top 80ms linear;opacity:0;will-change:left,top}
     .lc-cursor.active{opacity:1}
     .lc-cursor.leaving{opacity:0;transition:opacity .3s}
@@ -84,7 +83,7 @@ export function getEmbedJS(origin: string): string {
     .lc-avatar-logout img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
     .lc-avatar-logout::after{content:'✕';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(220,38,38,.75);color:#fff;font:700 13px/1 system-ui;opacity:0;transition:opacity .18s;border-radius:50%}
     .lc-avatar-logout:hover::after{opacity:1}
-  \`;
+  `;
   document.head.appendChild(style);
 
   /* ── containers ── */
@@ -263,7 +262,7 @@ export function getEmbedJS(origin: string): string {
     } else if(showLogin){
       var loginUrl=ORIGIN+"/auth/login?redirect="+encodeURIComponent(location.href);
       var loginBtn=document.createElement("a");loginBtn.className="lc-btn-login";loginBtn.href=loginUrl;
-      loginBtn.innerHTML='<svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>Who\\'s Here';
+      loginBtn.innerHTML='<svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>Who\'s Here';
       authEl.appendChild(loginBtn);
     }
   }
@@ -317,5 +316,4 @@ export function getEmbedJS(origin: string): string {
   } else {
     init();
   }
-})();`;
-}
+})();
