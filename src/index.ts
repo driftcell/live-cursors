@@ -1,6 +1,5 @@
 import { CursorRoom } from './cursor-room';
 import { signJWT, verifyJWT } from './auth';
-import { getMainHTML } from './html';
 
 export { CursorRoom };
 
@@ -33,9 +32,13 @@ export default {
       return res;
     };
 
-    if (url.pathname === '/' || url.pathname === '/index.html') {
-      return respond(new Response(getMainHTML(env.GITHUB_CLIENT_ID || ''), {
-        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    if (url.pathname === '/api/config') {
+      return respond(new Response(JSON.stringify({ clientId: env.GITHUB_CLIENT_ID || '' }), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'public, max-age=3600',
+        },
       }));
     }
 
