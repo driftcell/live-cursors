@@ -17,6 +17,7 @@ interface UserInfo {
   yOffset: number;
   inputType: string;
   containerHeight: number;
+  snapTarget: string | null;
   lastPong: number;
 }
 
@@ -32,6 +33,13 @@ const DEAD_THRESHOLD = 45_000; // close if no pong for 45s
 
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
+}
+
+// ── snap target validation ──────────────────────────────────────────────────
+const SNAP_PATH_RE = /^[0-9]+(\.[0-9]+)*$/;
+function sanitizeSnapTarget(raw: unknown): string | null {
+  if (typeof raw !== 'string' || raw.length === 0 || raw.length > 256) return null;
+  return SNAP_PATH_RE.test(raw) ? raw : null;
 }
 
 function doLog(level: 'INFO' | 'WARN', event: string, data?: Record<string, unknown>) {
@@ -72,7 +80,7 @@ export class CursorRoom extends DurableObject<Env> {
 
     if (userInfoHeader) {
       const parsed = JSON.parse(userInfoHeader);
-      user = { ...parsed, xRatio: -1, yOffset: -1, inputType: 'mouse', containerHeight: 0, lastPong: Date.now() };
+      user = { ...parsed, xRatio: -1, yOffset: -1, inputType: 'mouse', containerHeight: 0, snapTarget: null, lastPong: Date.now() };
     } else {
       user = {
         id: crypto.randomUUID(),
@@ -84,6 +92,7 @@ export class CursorRoom extends DurableObject<Env> {
         yOffset: -1,
         inputType: 'mouse',
         containerHeight: 0,
+        snapTarget: null,
         lastPong: Date.now(),
       };
     }
@@ -141,10 +150,12 @@ export class CursorRoom extends DurableObject<Env> {
         user.yOffset = data.yOffset ?? 0;
         user.inputType = data.inputType || 'mouse';
         user.containerHeight = data.containerHeight || 0;
+        user.snapTarget = sanitizeSnapTarget(data.snapTarget);
         this.broadcast(JSON.stringify({
           type: 'cursor', id: user.id,
           xRatio: user.xRatio, yOffset: user.yOffset,
           inputType: user.inputType, containerHeight: user.containerHeight,
+          snapTarget: user.snapTarget,
         }), ws);
       }
     } catch {
@@ -177,6 +188,7 @@ export class CursorRoom extends DurableObject<Env> {
       yOffset: u.yOffset,
       inputType: u.inputType,
       containerHeight: u.containerHeight,
+      snapTarget: u.snapTarget,
     }));
   }
 

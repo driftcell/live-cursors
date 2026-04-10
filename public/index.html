@@ -72,10 +72,10 @@ header nav{margin-left:auto;display:flex;align-items:center;gap:16px}
   max-width:640px;margin:0 auto 80px;padding:0 24px;text-align:center;
 }
 .embed-section h2{font-size:1.5rem;font-weight:700;margin-bottom:8px}
-.embed-section p{color:var(--muted);margin-bottom:20px;font-size:14px}
+.embed-section>p{color:var(--muted);margin-bottom:20px;font-size:14px}
 .code-block{
   background:#1e1e2e;color:#cdd6f4;border-radius:12px;padding:20px 24px;
-  font:14px/1.6 'SF Mono',ui-monospace,Menlo,monospace;text-align:left;
+  font:13px/1.7 'SF Mono',ui-monospace,Menlo,monospace;text-align:left;
   overflow-x:auto;position:relative;
 }
 .code-block .tag{color:#89b4fa}.code-block .attr{color:#f9e2af}.code-block .str{color:#a6e3a1}
@@ -85,6 +85,26 @@ header nav{margin-left:auto;display:flex;align-items:center;gap:16px}
   transition:background .2s;
 }
 .copy-btn:hover{background:rgba(255,255,255,.2)}
+
+/* ── config panel ── */
+.cfg-panel{text-align:left;margin-bottom:24px}
+.cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+@media(max-width:480px){.cfg-grid,.cfg-input-row{grid-template-columns:1fr!important}}
+.cfg-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:border-color .2s;user-select:none}
+.cfg-item:hover{border-color:#c4c4c4}
+.cfg-name{font:600 13px/1.3 system-ui;color:var(--text)}
+.cfg-desc{font:400 11px/1.3 system-ui;color:var(--muted);margin-top:2px}
+.toggle{position:relative;width:36px;height:20px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.toggle .slider{position:absolute;inset:0;background:#d1d5db;border-radius:10px;cursor:pointer;transition:background .2s}
+.toggle .slider::before{content:'';position:absolute;width:16px;height:16px;left:2px;top:2px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.toggle input:checked+.slider{background:var(--accent)}
+.toggle input:checked+.slider::before{transform:translateX(16px)}
+.cfg-input-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cfg-field{display:flex;flex-direction:column;gap:4px}
+.cfg-field label{font:500 12px/1 system-ui;color:var(--muted)}
+.cfg-field input{padding:8px 10px;border:1px solid var(--border);border-radius:8px;font:13px/1.4 'SF Mono',ui-monospace,monospace;color:var(--text);background:var(--surface);transition:border-color .2s;outline:none}
+.cfg-field input:focus{border-color:var(--accent)}
 
 /* ── footer ── */
 footer{
@@ -133,7 +153,7 @@ footer a:hover{text-decoration:underline}
 
   <section class="features">
     <div class="feature-card"><div class="icon">⚡</div><h3>Real-time Sync</h3><p>Cursor positions broadcast instantly via Durable Objects with WebSocket connections.</p></div>
-    <div class="feature-card"><div class="icon">🎯</div><h3>Scroll & Screen Aware</h3><p>Document-absolute coordinates ensure cursors point at the same content regardless of viewport size or scroll position.</p></div>
+    <div class="feature-card"><div class="icon">🎯</div><h3>Scroll &amp; Screen Aware</h3><p>Document-absolute coordinates ensure cursors point at the same content regardless of viewport size or scroll position.</p></div>
     <div class="feature-card"><div class="icon">📱</div><h3>Touch Friendly</h3><p>Touch devices get a distinct soft-circle cursor that fades naturally when the finger lifts.</p></div>
     <div class="feature-card"><div class="icon">🔐</div><h3>GitHub OAuth</h3><p>Optional sign-in shows your avatar on cursors and the presence bar.</p></div>
     <div class="feature-card"><div class="icon">🌐</div><h3>Zero Cost</h3><p>Built entirely on Cloudflare's free tier — Workers, Durable Objects, no servers to maintain.</p></div>
@@ -142,18 +162,46 @@ footer a:hover{text-decoration:underline}
 
   <section class="embed-section" id="embed">
     <h2>📦 Add to Your Site</h2>
-    <p>One script tag gives any page live cursors. Configure via <code style="background:#f0f0f8;padding:1px 5px;border-radius:4px;font-size:13px">data-*</code> attributes — set the coordinate container, toggle cursors & presence, filter anonymous users, and more.</p>
+    <p>Toggle features below, then copy the embed code.</p>
+
+    <div class="cfg-panel">
+      <div class="cfg-grid">
+        <label class="cfg-item">
+          <div><div class="cfg-name">Cursors</div><div class="cfg-desc">Show real-time cursor arrows</div></div>
+          <div class="toggle"><input type="checkbox" id="cfg-cursors" checked><span class="slider"></span></div>
+        </label>
+        <label class="cfg-item">
+          <div><div class="cfg-name">Presence</div><div class="cfg-desc">Avatar bar of online users</div></div>
+          <div class="toggle"><input type="checkbox" id="cfg-presence" checked><span class="slider"></span></div>
+        </label>
+        <label class="cfg-item">
+          <div><div class="cfg-name">Login</div><div class="cfg-desc">GitHub sign-in button</div></div>
+          <div class="toggle"><input type="checkbox" id="cfg-login" checked><span class="slider"></span></div>
+        </label>
+        <label class="cfg-item">
+          <div><div class="cfg-name">Element Snap</div><div class="cfg-desc">Snap cursor to hovered elements</div></div>
+          <div class="toggle"><input type="checkbox" id="cfg-snap"><span class="slider"></span></div>
+        </label>
+        <label class="cfg-item">
+          <div><div class="cfg-name">Count Anonymous</div><div class="cfg-desc">Include anonymous in presence</div></div>
+          <div class="toggle"><input type="checkbox" id="cfg-anonymous" checked><span class="slider"></span></div>
+        </label>
+      </div>
+      <div class="cfg-input-row">
+        <div class="cfg-field">
+          <label>Container selector</label>
+          <input type="text" id="cfg-container" value="main" placeholder="e.g. main, #app">
+        </div>
+        <div class="cfg-field">
+          <label>Throttle (ms)</label>
+          <input type="number" id="cfg-throttle" value="50" min="16" max="500">
+        </div>
+      </div>
+    </div>
+
     <div class="code-block" id="codeBlock">
-      <button class="copy-btn" onclick="copyEmbed()">Copy</button>
-      <span class="tag">&lt;script</span><br>
-      &nbsp;&nbsp;<span class="attr">src</span>=<span class="str">"<span id="embedUrl"></span>"</span><br>
-      &nbsp;&nbsp;<span class="attr">data-presence</span>=<span class="str">"#your-element"</span><br>
-      &nbsp;&nbsp;<span class="attr">data-container</span>=<span class="str">"main"</span><br>
-      &nbsp;&nbsp;<span class="attr">data-show-cursors</span>=<span class="str">"true"</span><br>
-      &nbsp;&nbsp;<span class="attr">data-show-presence</span>=<span class="str">"true"</span><br>
-      &nbsp;&nbsp;<span class="attr">data-count-anonymous</span>=<span class="str">"true"</span><br>
-      &nbsp;&nbsp;<span class="attr">data-throttle</span>=<span class="str">"50"</span><br>
-      <span class="tag">&gt;&lt;/script&gt;</span>
+      <button class="copy-btn" id="copyBtn">Copy</button>
+      <code id="codeOutput"></code>
     </div>
     <p style="margin-top:14px;font-size:13px;color:var(--muted)">
       All <code style="background:#f0f0f8;padding:1px 5px;border-radius:4px">data-*</code> attributes are optional —
@@ -177,19 +225,88 @@ footer a:hover{text-decoration:underline}
   data-container="main"
   data-show-cursors="true"
   data-show-presence="true"
+  data-show-snap="false"
   data-count-anonymous="true"
 ></script>
 
-<!-- ── homepage-only extras ── -->
+<!-- ── homepage-only: config panel logic ── -->
 <script>
 (function(){
   "use strict";
+  var o = location.origin;
 
-  // ── fill embed URL display ──
-  var embedEl = document.getElementById("embedUrl");
-  if (embedEl) embedEl.textContent = location.origin + "/embed.js";
+  /* ── toggle definitions: attr-suffix → element-id, default value ── */
+  var toggles = [
+    { key: "show-cursors",    el: "cfg-cursors",   def: true  },
+    { key: "show-presence",   el: "cfg-presence",  def: true  },
+    { key: "show-login",      el: "cfg-login",     def: true  },
+    { key: "show-snap",       el: "cfg-snap",      def: false },
+    { key: "count-anonymous", el: "cfg-anonymous", def: true  }
+  ];
 
-  // ── listen for connection status from embed.js ──
+  function esc(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  /* ── build plain-text code for clipboard ── */
+  function buildCode() {
+    var lines = ["<scr" + "ipt"];
+    lines.push('  src="' + o + '/embed.js"');
+    var container = document.getElementById("cfg-container").value.trim();
+    if (container) lines.push('  data-container="' + container + '"');
+    toggles.forEach(function(t) {
+      var on = document.getElementById(t.el).checked;
+      if (on !== t.def) lines.push("  data-" + t.key + '="' + on + '"');
+    });
+    var throttle = parseInt(document.getElementById("cfg-throttle").value, 10) || 50;
+    if (throttle !== 50) lines.push('  data-throttle="' + throttle + '"');
+    lines.push("></scr" + "ipt>");
+    return lines.join("\n");
+  }
+
+  /* ── render syntax-highlighted code block ── */
+  function renderCode() {
+    var lines = [];
+    lines.push('<span class="tag">&lt;script</span>');
+    lines.push('  <span class="attr">src</span>=<span class="str">"' + esc(o) + '/embed.js"</span>');
+    var container = document.getElementById("cfg-container").value.trim();
+    if (container) {
+      lines.push('  <span class="attr">data-container</span>=<span class="str">"' + esc(container) + '"</span>');
+    }
+    toggles.forEach(function(t) {
+      var on = document.getElementById(t.el).checked;
+      if (on !== t.def) {
+        lines.push('  <span class="attr">data-' + t.key + '</span>=<span class="str">"' + on + '"</span>');
+      }
+    });
+    var throttle = parseInt(document.getElementById("cfg-throttle").value, 10) || 50;
+    if (throttle !== 50) {
+      lines.push('  <span class="attr">data-throttle</span>=<span class="str">"' + throttle + '"</span>');
+    }
+    lines.push('<span class="tag">&gt;&lt;/script&gt;</span>');
+    document.getElementById("codeOutput").innerHTML = lines.join("<br>");
+  }
+
+  /* ── bind all config inputs to live-update the code ── */
+  toggles.forEach(function(t) {
+    document.getElementById(t.el).addEventListener("change", renderCode);
+  });
+  document.getElementById("cfg-container").addEventListener("input", renderCode);
+  document.getElementById("cfg-throttle").addEventListener("input", renderCode);
+
+  /* ── copy button ── */
+  document.getElementById("copyBtn").addEventListener("click", function() {
+    navigator.clipboard.writeText(buildCode()).then(function() {
+      var btn = document.getElementById("copyBtn");
+      btn.textContent = "Copied!";
+      setTimeout(function() { btn.textContent = "Copy"; }, 2000);
+    });
+  });
+
+  /* ── initial render ── */
+  renderCode();
+
+  /* ── connection status from embed.js ── */
   window.addEventListener("lc:status", function(e) {
     var s = e.detail.status;
     var dot = document.getElementById("wsDot");
@@ -197,30 +314,9 @@ footer a:hover{text-decoration:underline}
     var wrap = document.getElementById("wsStatus");
     if (!dot || !txt || !wrap) return;
     dot.className = "ws-dot " + s;
-    txt.textContent = s === "connected" ? "Connected" : s === "connecting" ? "Connecting…" : "Reconnecting…";
+    txt.textContent = s === "connected" ? "Connected" : s === "connecting" ? "Connecting\u2026" : "Reconnecting\u2026";
     wrap.style.opacity = s === "connected" ? "0" : "1";
   });
-
-  // ── copy embed code ──
-  window.copyEmbed = function() {
-    var o = location.origin;
-    var code = [
-      '<script',
-      '  src="' + o + '/embed.js"',
-      '  data-presence="#your-element"',
-      '  data-container="main"',
-      '  data-show-cursors="true"',
-      '  data-show-presence="true"',
-      '  data-count-anonymous="true"',
-      '  data-throttle="50"',
-      '></' + 'script>'
-    ].join('\n');
-    navigator.clipboard.writeText(code).then(function() {
-      var btn = document.querySelector(".copy-btn");
-      btn.textContent = "Copied!";
-      setTimeout(function() { btn.textContent = "Copy"; }, 2000);
-    });
-  };
 })();
 </script>
 </body>
