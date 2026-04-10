@@ -22,6 +22,9 @@ interface UserInfo {
   containerHeight: number;
   snapTarget: string | null;
   lastPong: number;
+  // rate-limiting bookkeeping
+  msgCount: number;
+  windowStart: number;
 }
 
 const COLORS = [
@@ -33,6 +36,15 @@ const ADJS = ['Swift', 'Quiet', 'Bold', 'Warm', 'Calm', 'Keen', 'Wise', 'Free', 
 
 const PING_INTERVAL = 20_000;  // send ping every 20s
 const DEAD_THRESHOLD = 45_000; // close if no pong for 45s
+const BROADCAST_INTERVAL = 50; // flush batched cursor updates every 50ms (~20fps)
+
+// ── rate limiting ─────────────────────────────────────────────────────────
+const RATE_LIMIT_WINDOW = 1_000; // 1-second sliding window
+const RATE_LIMIT_MAX = 30;       // max messages per window (50ms client ≈ 20/s, leave headroom)
+
+// ── connection & message limits ───────────────────────────────────────────
+const MAX_CONNECTIONS_PER_ROOM = 200;
+const MAX_MESSAGE_SIZE = 512;    // bytes – cursor payloads are ~150 B
 
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -49,15 +61,65 @@ function doLog(level: 'INFO' | 'WARN', event: string, data?: Record<string, unkn
   console.log(JSON.stringify({ level, event, ts: new Date().toISOString(), ...data }));
 }
 
+interface CursorUpdate {
+  id: string;
+  username: string;
+  avatar: string;
+  url: string;
+  color: string;
+  xRatio: number;
+  yOffset: number;
+  inputType: string;
+  containerHeight: number;
+  snapTarget: string | null;
+}
+
 export class CursorRoom extends DurableObject<Env> {
   sessions: Map<WebSocket, UserInfo>;
   private statsReady = false;
   private roomName = '/';
+  private pendingUpdates: Map<string, CursorUpdate> = new Map();
+  private broadcastTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     this.sessions = new Map();
     setInterval(() => this.heartbeat(), PING_INTERVAL);
+  }
+
+  // ── broadcast batching ────────────────────────────────────────────────────
+
+  private ensureBroadcastLoop() {
+    if (this.broadcastTimer) return;
+    this.broadcastTimer = setInterval(() => this.flushUpdates(), BROADCAST_INTERVAL);
+  }
+
+  private stopBroadcastLoop() {
+    if (this.broadcastTimer) {
+      clearInterval(this.broadcastTimer);
+      this.broadcastTimer = null;
+    }
+  }
+
+  private flushUpdates() {
+    if (this.pendingUpdates.size === 0) {
+      if (this.sessions.size === 0) this.stopBroadcastLoop();
+      return;
+    }
+
+    const batch = Array.from(this.pendingUpdates.values());
+    this.pendingUpdates.clear();
+
+    const msg = JSON.stringify({ type: 'cursor_batch', cursors: batch });
+    // Optimisation: when only one user moved in this tick (the common case),
+    // skip sending the batch back to that user entirely (avoid echo).
+    // For multi-user batches the client-side selfId filter handles it.
+    const singleSenderId = batch.length === 1 ? batch[0].id : null;
+
+    this.sessions.forEach((user, ws) => {
+      if (singleSenderId && user.id === singleSenderId) return;
+      try { ws.send(msg); } catch { /* dead socket */ }
+    });
   }
 
   private heartbeat() {
@@ -91,12 +153,22 @@ export class CursorRoom extends DurableObject<Env> {
 
     this.roomName = url.searchParams.get('room') || '/';
 
+    // ── connection limit ──────────────────────────────────────────────────
+    if (this.sessions.size >= MAX_CONNECTIONS_PER_ROOM) {
+      doLog('WARN', 'do_room_full', { room: this.roomName, limit: MAX_CONNECTIONS_PER_ROOM });
+      return new Response('Room full', {
+        status: 503,
+        headers: { 'Retry-After': '5' },
+      });
+    }
+
     const userInfoHeader = request.headers.get('X-User-Info');
     let user: UserInfo;
 
+    const now = Date.now();
     if (userInfoHeader) {
       const parsed = JSON.parse(userInfoHeader);
-      user = { ...parsed, xRatio: -1, yOffset: -1, inputType: 'mouse', containerHeight: 0, snapTarget: null, lastPong: Date.now() };
+      user = { ...parsed, xRatio: -1, yOffset: -1, inputType: 'mouse', containerHeight: 0, snapTarget: null, lastPong: now, msgCount: 0, windowStart: now };
     } else {
       user = {
         id: crypto.randomUUID(),
@@ -109,7 +181,9 @@ export class CursorRoom extends DurableObject<Env> {
         inputType: 'mouse',
         containerHeight: 0,
         snapTarget: null,
-        lastPong: Date.now(),
+        lastPong: now,
+        msgCount: 0,
+        windowStart: now,
       };
     }
 
@@ -121,6 +195,7 @@ export class CursorRoom extends DurableObject<Env> {
 
     server.accept();
     this.sessions.set(server, user);
+    this.ensureBroadcastLoop();
 
     doLog('INFO', 'do_join', { username: user.username, id: user.id, room: this.ctx.id.toString(), total: this.sessions.size });
 
@@ -155,27 +230,54 @@ export class CursorRoom extends DurableObject<Env> {
   }
 
   private handleMessage(ws: WebSocket, raw: string) {
+    // ── message size guard ─────────────────────────────────────────────────
+    if (raw.length > MAX_MESSAGE_SIZE) return;
+
+    const user = this.sessions.get(ws);
+    if (!user) return;
+
+    // ── per-connection rate limiting (fixed-window counter) ────────────────
+    const now = Date.now();
+    if (now - user.windowStart > RATE_LIMIT_WINDOW) {
+      user.msgCount = 0;
+      user.windowStart = now;
+    }
+    user.msgCount++;
+    if (user.msgCount > RATE_LIMIT_MAX) {
+      if (user.msgCount === RATE_LIMIT_MAX + 1) {
+        try { ws.send(JSON.stringify({ type: 'rate_limited' })); } catch { /* */ }
+        doLog('WARN', 'do_rate_limited', { id: user.id, username: user.username });
+      }
+      return; // silently drop excess messages
+    }
+
     try {
       const data = JSON.parse(raw);
       if (data.type === 'pong') {
-        const user = this.sessions.get(ws);
-        if (user) user.lastPong = Date.now();
+        user.lastPong = now;
         return;
       }
       if (data.type === 'cursor') {
-        const user = this.sessions.get(ws);
-        if (!user) return;
         user.xRatio = data.xRatio ?? 0;
         user.yOffset = data.yOffset ?? 0;
         user.inputType = data.inputType || 'mouse';
         user.containerHeight = data.containerHeight || 0;
         user.snapTarget = sanitizeSnapTarget(data.snapTarget);
-        this.broadcast(JSON.stringify({
-          type: 'cursor', id: user.id,
-          xRatio: user.xRatio, yOffset: user.yOffset,
-          inputType: user.inputType, containerHeight: user.containerHeight,
+        // Queue into pending batch instead of immediate broadcast
+        // Include identity fields so clients can lazy-init users whose
+        // join message was missed (e.g. reconnect race).
+        this.pendingUpdates.set(user.id, {
+          id: user.id,
+          username: user.username,
+          avatar: user.avatar,
+          url: user.url,
+          color: user.color,
+          xRatio: user.xRatio,
+          yOffset: user.yOffset,
+          inputType: user.inputType,
+          containerHeight: user.containerHeight,
           snapTarget: user.snapTarget,
-        }), ws);
+        });
       }
     } catch {
       // ignore malformed messages

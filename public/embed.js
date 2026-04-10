@@ -237,6 +237,7 @@
     if(m.type==="init"){selfId=m.self;m.users.forEach(function(u){if(u.id!==selfId)addUser(u)});updatePresence();}
     else if(m.type==="join"){addUser(m.user);updatePresence();}
     else if(m.type==="cursor"){moveCursor(m);}
+    else if(m.type==="cursor_batch"){if(m.cursors)m.cursors.forEach(function(c){if(c.id!==selfId){if(!users.has(c.id)&&c.username)addUser(c);moveCursor(c);}});}
     else if(m.type==="leave"){removeUser(m.id);updatePresence();}
   }
 
