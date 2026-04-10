@@ -137,7 +137,18 @@
     return{x:lx,y:ly,vis:ly>=-30&&ly<=window.innerHeight+30};
   }
 
-  function cursorSVG(c){return '<svg class="lc-arrow" width="16" height="20" viewBox="0 0 16 20" fill="none"><path d="M0.5 0.5L0.5 17L5 12.5H13Z" fill="'+c+'" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/></svg>';}
+  function cursorSVG(c){
+    var ns="http://www.w3.org/2000/svg";
+    var svg=document.createElementNS(ns,"svg");
+    svg.setAttribute("class","lc-arrow");svg.setAttribute("width","16");svg.setAttribute("height","20");
+    svg.setAttribute("viewBox","0 0 16 20");svg.setAttribute("fill","none");
+    var path=document.createElementNS(ns,"path");
+    path.setAttribute("d","M0.5 0.5L0.5 17L5 12.5H13Z");
+    path.setAttribute("fill",c);path.setAttribute("stroke","#fff");
+    path.setAttribute("stroke-width","1.2");path.setAttribute("stroke-linejoin","round");
+    svg.appendChild(path);
+    return svg;
+  }
 
   function connect(){
     var proto=location.protocol==="https:"?"wss:":"ws:";
@@ -165,7 +176,16 @@
     var el=null;
     if(showCursors){
       el=document.createElement("div");el.className="lc-cursor";
-      el.innerHTML=cursorSVG(c)+'<div class="lc-touch-dot" style="background:'+c+'"></div><div class="lc-info">'+(u.avatar?'<img class="lc-avatar" src="'+u.avatar+'">':'<div class="lc-dot" style="background:'+c+'">'+u.username[0]+'</div>')+'<span class="lc-label" style="background:'+c+'">'+u.username+'</span></div>';
+      el.appendChild(cursorSVG(c));
+      var td=document.createElement("div");td.className="lc-touch-dot";td.style.background=c;el.appendChild(td);
+      var info=document.createElement("div");info.className="lc-info";
+      if(u.avatar){
+        var av=document.createElement("img");av.className="lc-avatar";av.src=u.avatar;info.appendChild(av);
+      }else{
+        var dot=document.createElement("div");dot.className="lc-dot";dot.style.background=c;dot.textContent=u.username[0];info.appendChild(dot);
+      }
+      var label=document.createElement("span");label.className="lc-label";label.style.background=c;label.textContent=u.username;info.appendChild(label);
+      el.appendChild(info);
       cursorsDiv.appendChild(el);
     }
     users.set(u.id,{username:u.username,avatar:u.avatar,url:u.url,color:c,el:el,edgeEl:null,xRatio:u.xRatio||-1,yOffset:u.yOffset||-1,inputType:u.inputType||"mouse",containerHeight:u.containerHeight||0});
@@ -206,8 +226,11 @@
     if(!u.edgeEl){
       u.edgeEl=document.createElement("div");
       u.edgeEl.className="lc-edge";
-      var av=u.avatar?'<div class="lc-e-av"><img src="'+u.avatar+'"></div>':'<div class="lc-e-av" style="background:'+u.color+'">'+u.username[0]+'</div>';
-      u.edgeEl.innerHTML=av+" "+u.username;
+      var avDiv=document.createElement("div");avDiv.className="lc-e-av";
+      if(u.avatar){var avImg=document.createElement("img");avImg.src=u.avatar;avDiv.appendChild(avImg);}
+      else{avDiv.style.background=u.color;avDiv.textContent=u.username[0];}
+      u.edgeEl.appendChild(avDiv);
+      u.edgeEl.appendChild(document.createTextNode(" "+u.username));
       u.edgeEl.style.background=u.color;
       u.edgeEl.onclick=function(){
         var sy=window.scrollY||window.pageYOffset||0;
