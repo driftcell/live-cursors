@@ -17,15 +17,16 @@
   const tokenKey="lc_token_"+ORIGIN.replace(/^https?:\/\//,"");
   let lcToken=null;
   let selfUser=null;
+  let oauthReady=false;
 
   (function readToken(){
     try{
       const up=new URLSearchParams(location.search);
-      const fromUrl=up.get("lc_token");
+      const fromUrl=up.get("lc_token")||up.get("token");
       if(fromUrl){
         lcToken=fromUrl;
         localStorage.setItem(tokenKey,lcToken);
-        up.delete("lc_token");
+        up.delete("lc_token");up.delete("token");
         const qs=up.toString();
         history.replaceState({},"",location.pathname+(qs?"?"+qs:"")+location.hash);
       } else {
@@ -48,7 +49,7 @@
   const style=document.createElement("style");
   style.textContent=`
     .lc-cursor{position:fixed;pointer-events:none;z-index:999999;transition:left 80ms linear,top 80ms linear;opacity:0;will-change:left,top}
-    .lc-cursor.active{opacity:1}
+    .lc-cursor.active{opacity:1;transition:left 80ms linear,top 80ms linear,opacity .3s}
     .lc-cursor.leaving{opacity:0;transition:opacity .3s}
     .lc-cursor.touch .lc-arrow{display:none}
     .lc-cursor.touch .lc-touch-dot{display:flex}
@@ -149,14 +150,26 @@
     return svg;
   }
 
+  /* ── status event helper ── */
+  function emitStatus(s){
+    try{window.dispatchEvent(new CustomEvent("lc:status",{detail:{status:s}}));}catch(e){}
+  }
+
   function connect(){
+    emitStatus("connecting");
     const proto=location.protocol==="https:"?"wss:":"ws:";
     let wsUrl=proto+"//"+ORIGIN.replace(new RegExp("^https?://"),"")+"/ws?room="+encodeURIComponent(room);
     if(lcToken)wsUrl+="&token="+encodeURIComponent(lcToken);
     ws=new WebSocket(wsUrl);
-    ws.onopen=function(){reconnectDelay=1000};
+    ws.onopen=function(){reconnectDelay=1000;emitStatus("connected")};
     ws.onmessage=function(e){try{handle(JSON.parse(e.data))}catch(x){}};
-    ws.onclose=function(){ws=null;setTimeout(connect,reconnectDelay);reconnectDelay=Math.min(reconnectDelay*1.5,30000)};
+    ws.onclose=function(){
+      ws=null;emitStatus("disconnected");
+      users.forEach(function(u){if(u.el)u.el.remove();if(u.edgeEl)u.edgeEl.remove();});
+      users.clear();updatePresence();
+      Object.keys(touchFadeTimers).forEach(function(k){clearTimeout(touchFadeTimers[k]);});
+      setTimeout(connect,reconnectDelay);reconnectDelay=Math.min(reconnectDelay*1.5,30000);
+    };
   }
 
   function isAnon(u){return !u.avatar;}
@@ -282,7 +295,7 @@
       if(selfUser.avatar){const av=document.createElement("img");av.src=selfUser.avatar;av.alt=selfUser.username;logoutBtn.appendChild(av);}
       else{logoutBtn.style.cssText="background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;font:700 13px/1 system-ui";logoutBtn.textContent=selfUser.username[0];}
       authEl.appendChild(logoutBtn);
-    } else if(showLogin){
+    } else if(showLogin&&oauthReady){
       const loginUrl=ORIGIN+"/auth/login?redirect="+encodeURIComponent(location.href);
       const loginBtn=document.createElement("a");loginBtn.className="lc-btn-login";loginBtn.href=loginUrl;
       loginBtn.innerHTML='<svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>Who\'s Here';
@@ -331,6 +344,10 @@
   function closeWs(){if(ws){ws.close();ws=null;}}
   window.addEventListener("beforeunload",closeWs);
   window.addEventListener("pagehide",closeWs);
+  /* ── fetch server config (OAuth availability), then connect ── */
+  fetch(ORIGIN+"/api/config").then(function(r){return r.json()}).then(function(cfg){
+    if(cfg&&cfg.clientId){oauthReady=true;updatePresence();}
+  }).catch(function(){});
   connect();
   } // end init
 
