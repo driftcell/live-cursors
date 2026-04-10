@@ -138,6 +138,13 @@ footer a:hover{text-decoration:underline}
 .ws-dot.connecting{background:#f59e0b;animation:pulse 1s infinite}
 .ws-dot.disconnected{background:#ef4444}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── skeleton loading ── */
+.skeleton{position:relative;overflow:hidden;background:#e5e7eb;border-radius:6px;color:transparent!important;-webkit-text-fill-color:transparent}
+.skeleton::after{content:'';position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);animation:shimmer 1.5s infinite}
+@keyframes shimmer{100%{transform:translateX(100%)}}
+.stat-value.skeleton{display:inline-block;width:48px;height:32px}
+.stat-label.skeleton{display:inline-block;width:64px;height:12px;margin-top:2px}
 </style>
 </head>
 <body>
@@ -162,10 +169,10 @@ footer a:hover{text-decoration:underline}
     </div>
   </section>
 
-  <section class="stats-bar" id="statsBar" style="display:none">
-    <div class="stat-item"><span class="stat-value" id="statVisits">—</span><span class="stat-label">Total Visits</span></div>
-    <div class="stat-item"><span class="stat-value" id="statOnline">—</span><span class="stat-label">Online Now</span></div>
-    <div class="stat-item"><span class="stat-value" id="statPeak">—</span><span class="stat-label">Peak Online</span></div>
+  <section class="stats-bar" id="statsBar">
+    <div class="stat-item"><span class="stat-value skeleton" id="statVisits">&nbsp;</span><span class="stat-label skeleton">&nbsp;</span></div>
+    <div class="stat-item"><span class="stat-value skeleton" id="statOnline">&nbsp;</span><span class="stat-label skeleton">&nbsp;</span></div>
+    <div class="stat-item"><span class="stat-value skeleton" id="statPeak">&nbsp;</span><span class="stat-label skeleton">&nbsp;</span></div>
   </section>
 
   <section class="features">
@@ -332,12 +339,19 @@ footer a:hover{text-decoration:underline}
   /* ── stats display from embed.js telemetry ── */
   window.addEventListener("lc:stats", function(e) {
     var d = e.detail;
-    var bar = document.getElementById("statsBar");
-    if (bar) bar.style.display = "flex";
-    var el;
-    el = document.getElementById("statVisits"); if (el) el.textContent = (d.total_visits ?? 0).toLocaleString();
-    el = document.getElementById("statOnline"); if (el) el.textContent = (d.current_online ?? 0).toLocaleString();
-    el = document.getElementById("statPeak");   if (el) el.textContent = (d.peak_online ?? 0).toLocaleString();
+    var ids = ["statVisits", "statOnline", "statPeak"];
+    var vals = [
+      (d.total_visits ?? 0).toLocaleString(),
+      (d.current_online ?? 0).toLocaleString(),
+      (d.peak_online ?? 0).toLocaleString()
+    ];
+    var labels = ["Total Visits", "Online Now", "Peak Online"];
+    for (var i = 0; i < ids.length; i++) {
+      var el = document.getElementById(ids[i]);
+      if (el) { el.classList.remove("skeleton"); el.textContent = vals[i]; }
+      var lbl = el && el.nextElementSibling;
+      if (lbl) { lbl.classList.remove("skeleton"); lbl.textContent = labels[i]; }
+    }
   });
 
   /* ── connection status from embed.js ── */
