@@ -13,6 +13,7 @@
   const countAnonymous=attr("data-count-anonymous")!=="false";
   const showSnap=attr("data-show-snap")==="true";
   const throttleMs=parseInt(attr("data-throttle")||"50",10)||50;
+  const telemetryEnabled=attr("data-telemetry")==="true";
 
   /* ── auth token (shared with the service via localStorage) ── */
   const tokenKey="lc_token_"+ORIGIN.replace(/^https?:\/\//,"");
@@ -232,6 +233,7 @@
 
   function handle(m){
     if(m.type==="ping"&&ws&&ws.readyState===1){ws.send(JSON.stringify({type:"pong"}));return;}
+    if(m.type==="stats"){try{window.dispatchEvent(new CustomEvent("lc:stats",{detail:m}));}catch(e){}return;}
     if(m.type==="init"){selfId=m.self;m.users.forEach(function(u){if(u.id!==selfId)addUser(u)});updatePresence();}
     else if(m.type==="join"){addUser(m.user);updatePresence();}
     else if(m.type==="cursor"){moveCursor(m);}
@@ -447,6 +449,17 @@
     if(cfg&&cfg.clientId){oauthReady=true;updatePresence();}
   }).catch(function(){});
   connect();
+
+  /* ── telemetry: initial stats fetch (real-time updates come via WebSocket 'stats' messages) ── */
+  if(telemetryEnabled){
+    function fetchStats(){
+      fetch(ORIGIN+"/api/stats?site="+encodeURIComponent(room)).then(function(r){return r.json()}).then(function(stats){
+        try{window.dispatchEvent(new CustomEvent("lc:stats",{detail:stats}));}catch(e){}
+      }).catch(function(){});
+    }
+    // Fetch once on load for initial data; subsequent updates arrive via WS
+    setTimeout(fetchStats,2000);
+  }
   } // end init
 
   if(document.readyState==="loading"){

@@ -1,5 +1,6 @@
 import { CursorRoom } from './cursor-room';
 import { signJWT, verifyJWT } from './auth';
+import { ensureStatsTable, getStats } from './stats';
 
 export { CursorRoom };
 
@@ -8,6 +9,8 @@ export interface Env {
   GITHUB_CLIENT_ID: string;
   GITHUB_CLIENT_SECRET: string;
   JWT_SECRET: string;
+  DB: D1Database;
+  TELEMETRY_ENDPOINT: string;
 }
 
 function log(level: 'INFO' | 'WARN' | 'ERROR', event: string, data?: Record<string, unknown>) {
@@ -57,6 +60,44 @@ export default {
 
     if (url.pathname === '/auth/callback') {
       return respond(await handleOAuthCallback(url, env));
+    }
+
+    // Stats API
+    if (url.pathname === '/api/stats') {
+      const site = url.searchParams.get('site') || '/';
+      try {
+        await ensureStatsTable(env.DB);
+        const persisted = await getStats(env.DB, site);
+
+        // Get live current_online from the Durable Object
+        const doId = env.CURSOR_ROOM.idFromName(site);
+        const doStub = env.CURSOR_ROOM.get(doId);
+        let currentOnline = 0;
+        try {
+          const doRes = await doStub.fetch(new Request(`${url.origin}/do/stats`));
+          const doData = (await doRes.json()) as { current_online: number };
+          currentOnline = doData.current_online ?? 0;
+        } catch { /* DO may not be active yet */ }
+
+        return respond(new Response(JSON.stringify({
+          site,
+          total_visits: persisted?.total_visits ?? 0,
+          current_online: currentOnline,
+          peak_online: persisted?.peak_online ?? 0,
+        }), {
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'no-cache',
+          },
+        }));
+      } catch (err) {
+        log('ERROR', 'stats_api_error', { error: String(err) });
+        return respond(new Response(JSON.stringify({ error: 'Stats unavailable' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        }));
+      }
     }
 
     // WebSocket → Durable Object

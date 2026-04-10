@@ -53,6 +53,17 @@ header nav{margin-left:auto;display:flex;align-items:center;gap:16px}
 .btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border)}
 .btn-secondary:hover{border-color:#c4c4c4;transform:translateY(-1px)}
 
+/* ── stats bar ── */
+.stats-bar{
+  display:flex;justify-content:center;gap:48px;max-width:600px;margin:-20px auto 48px;padding:24px;
+  background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  box-shadow:0 2px 12px rgba(0,0,0,.04);
+}
+.stat-item{display:flex;flex-direction:column;align-items:center;gap:4px}
+.stat-value{font-size:2rem;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+@media(max-width:480px){.stats-bar{gap:24px;padding:18px}.stat-value{font-size:1.5rem}}
+
 /* ── features ── */
 .features{
   display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
@@ -151,6 +162,12 @@ footer a:hover{text-decoration:underline}
     </div>
   </section>
 
+  <section class="stats-bar" id="statsBar" style="display:none">
+    <div class="stat-item"><span class="stat-value" id="statVisits">—</span><span class="stat-label">Total Visits</span></div>
+    <div class="stat-item"><span class="stat-value" id="statOnline">—</span><span class="stat-label">Online Now</span></div>
+    <div class="stat-item"><span class="stat-value" id="statPeak">—</span><span class="stat-label">Peak Online</span></div>
+  </section>
+
   <section class="features">
     <div class="feature-card"><div class="icon">⚡</div><h3>Real-time Sync</h3><p>Cursor positions broadcast instantly via Durable Objects with WebSocket connections.</p></div>
     <div class="feature-card"><div class="icon">🎯</div><h3>Scroll &amp; Screen Aware</h3><p>Document-absolute coordinates ensure cursors point at the same content regardless of viewport size or scroll position.</p></div>
@@ -181,6 +198,10 @@ footer a:hover{text-decoration:underline}
         <label class="cfg-item">
           <div><div class="cfg-name">Element Snap</div><div class="cfg-desc">Snap cursor to hovered elements</div></div>
           <div class="toggle"><input type="checkbox" id="cfg-snap"><span class="slider"></span></div>
+        </label>
+        <label class="cfg-item">
+          <div><div class="cfg-name">Telemetry</div><div class="cfg-desc">Fetch &amp; show site analytics</div></div>
+          <div class="toggle"><input type="checkbox" id="cfg-telemetry" checked><span class="slider"></span></div>
         </label>
         <label class="cfg-item">
           <div><div class="cfg-name">Count Anonymous</div><div class="cfg-desc">Include anonymous in presence</div></div>
@@ -227,6 +248,7 @@ footer a:hover{text-decoration:underline}
   data-show-presence="true"
   data-show-snap="false"
   data-count-anonymous="true"
+  data-telemetry="true"
 ></script>
 
 <!-- ── homepage-only: config panel logic ── -->
@@ -241,7 +263,8 @@ footer a:hover{text-decoration:underline}
     { key: "show-presence",   el: "cfg-presence",  def: true  },
     { key: "show-login",      el: "cfg-login",     def: true  },
     { key: "show-snap",       el: "cfg-snap",      def: false },
-    { key: "count-anonymous", el: "cfg-anonymous", def: true  }
+    { key: "count-anonymous", el: "cfg-anonymous", def: true  },
+    { key: "telemetry",       el: "cfg-telemetry",  def: true  }
   ];
 
   function esc(s) {
@@ -305,6 +328,17 @@ footer a:hover{text-decoration:underline}
 
   /* ── initial render ── */
   renderCode();
+
+  /* ── stats display from embed.js telemetry ── */
+  window.addEventListener("lc:stats", function(e) {
+    var d = e.detail;
+    var bar = document.getElementById("statsBar");
+    if (bar) bar.style.display = "flex";
+    var el;
+    el = document.getElementById("statVisits"); if (el) el.textContent = (d.total_visits ?? 0).toLocaleString();
+    el = document.getElementById("statOnline"); if (el) el.textContent = (d.current_online ?? 0).toLocaleString();
+    el = document.getElementById("statPeak");   if (el) el.textContent = (d.peak_online ?? 0).toLocaleString();
+  });
 
   /* ── connection status from embed.js ── */
   window.addEventListener("lc:status", function(e) {

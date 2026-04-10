@@ -7,6 +7,13 @@ directory = "./public"
 
 [vars]
 GITHUB_CLIENT_ID = "Ov23liaqOx72rJwGmjJV"
+# Set to your telemetry receiver URL to enable stats push; leave empty to disable.
+TELEMETRY_ENDPOINT = ""
+
+[[d1_databases]]
+binding = "DB"
+database_name = "live-cursors-stats"
+database_id = "9370084c-7d43-404f-a2de-3ed5bd7f6fff"
 
 [durable_objects]
 bindings = [

@@ -1,10 +1,13 @@
 import { DurableObject } from 'cloudflare:workers';
+import { ensureStatsTable, recordVisit, getStats, pushTelemetry } from './stats';
 
 export interface Env {
   CURSOR_ROOM: DurableObjectNamespace;
   GITHUB_CLIENT_ID: string;
   GITHUB_CLIENT_SECRET: string;
   JWT_SECRET: string;
+  DB: D1Database;
+  TELEMETRY_ENDPOINT: string;
 }
 
 interface UserInfo {
@@ -48,6 +51,8 @@ function doLog(level: 'INFO' | 'WARN', event: string, data?: Record<string, unkn
 
 export class CursorRoom extends DurableObject<Env> {
   sessions: Map<WebSocket, UserInfo>;
+  private statsReady = false;
+  private roomName = '/';
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -70,10 +75,21 @@ export class CursorRoom extends DurableObject<Env> {
   }
 
   async fetch(request: Request): Promise<Response> {
+    const url = new URL(request.url);
+
+    // Internal stats endpoint (non-WebSocket)
+    if (url.pathname.endsWith('/do/stats')) {
+      return new Response(JSON.stringify({ current_online: this.sessions.size }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     const upgradeHeader = request.headers.get('Upgrade');
     if (!upgradeHeader || upgradeHeader !== 'websocket') {
       return new Response('Expected WebSocket upgrade', { status: 426 });
     }
+
+    this.roomName = url.searchParams.get('room') || '/';
 
     const userInfoHeader = request.headers.get('X-User-Info');
     let user: UserInfo;
@@ -110,6 +126,9 @@ export class CursorRoom extends DurableObject<Env> {
 
     // Tell the new client about existing users
     server.send(JSON.stringify({ type: 'init', self: user.id, users: currentUsers }));
+
+    // Record visit in D1 + telemetry
+    this.pushStats('join').catch(() => {});
 
     // Tell everyone else about the new user
     this.broadcast(
@@ -169,6 +188,8 @@ export class CursorRoom extends DurableObject<Env> {
       this.sessions.delete(ws);
       doLog('INFO', 'do_leave', { username: user.username, id: user.id, remaining: this.sessions.size });
       this.broadcast(JSON.stringify({ type: 'leave', id: user.id }));
+      // Push updated stats after leave
+      this.pushStats('leave').catch(() => {});
     }
     try {
       ws.close(1000, 'Connection closed');
@@ -190,6 +211,38 @@ export class CursorRoom extends DurableObject<Env> {
       containerHeight: u.containerHeight,
       snapTarget: u.snapTarget,
     }));
+  }
+
+  private async pushStats(event: 'join' | 'leave') {
+    try {
+      if (!this.statsReady) {
+        await ensureStatsTable(this.env.DB);
+        this.statsReady = true;
+      }
+      if (event === 'join') {
+        await recordVisit(this.env.DB, this.roomName, this.sessions.size);
+      }
+
+      // Fetch persisted stats for broadcast + telemetry
+      const persisted = await getStats(this.env.DB, this.roomName);
+      const statsPayload = {
+        site: this.roomName,
+        total_visits: persisted?.total_visits ?? 0,
+        current_online: this.sessions.size,
+        peak_online: persisted?.peak_online ?? 0,
+        updated_at: new Date().toISOString(),
+      };
+
+      // Broadcast stats to all connected clients via WebSocket
+      this.broadcast(JSON.stringify({ type: 'stats', ...statsPayload }));
+
+      // Push telemetry to external endpoint if configured
+      if (this.env.TELEMETRY_ENDPOINT) {
+        await pushTelemetry(this.env.TELEMETRY_ENDPOINT, statsPayload);
+      }
+    } catch (err) {
+      doLog('WARN', 'stats_error', { event, error: String(err) });
+    }
   }
 
   private broadcast(message: string, exclude?: WebSocket) {

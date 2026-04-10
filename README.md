@@ -38,7 +38,10 @@ All options are set via `data-*` attributes on the script tag:
 | `data-container` | `document.documentElement` | CSS selector for the content container used as the coordinate anchor. Use this when your page has a centered `max-width` layout (e.g. `data-container=".content-wrapper"`) so cursors align to content, not viewport edges. |
 | `data-show-cursors` | `"true"` | Set to `"false"` to hide remote cursors (presence bar still works) |
 | `data-show-presence` | `"true"` | Set to `"false"` to hide the presence bar |
+| `data-show-login` | `"true"` | Set to `"false"` to hide the GitHub sign-in button |
+| `data-show-snap` | `"false"` | Set to `"true"` to enable element-snap mode — cursors highlight the hovered DOM element instead of showing a free-form pointer |
 | `data-count-anonymous` | `"true"` | Set to `"false"` to exclude anonymous (non-OAuth) users from the online count and presence avatars |
+| `data-telemetry` | `"true"` | Set to `"false"` to disable fetching and displaying site analytics (total visits, online count, peak online) |
 | `data-throttle` | `"50"` | Cursor send throttle in milliseconds. Lower = smoother but more bandwidth |
 
 ### Example: Centered blog layout
