@@ -231,8 +231,9 @@
       u.edgeEl.appendChild(document.createTextNode(" "+u.username));
       u.edgeEl.style.background=u.color;
       u.edgeEl.onclick=function(){
+        var cur=resolvePos(u);
         var sy=window.scrollY||window.pageYOffset||0;
-        window.scrollTo({top:sy+(p.y-window.innerHeight/2),behavior:"smooth"});
+        window.scrollTo({top:sy+(cur.y-window.innerHeight/2),behavior:"smooth"});
       };
       edgeDiv.appendChild(u.edgeEl);
     }
