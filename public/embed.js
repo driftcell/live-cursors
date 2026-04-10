@@ -118,11 +118,9 @@
   function getCursorPos(clientX,clientY){
     var c=getContainer();if(!c)return null;
     var r=c.getBoundingClientRect();
-    var sx=window.scrollX||window.pageXOffset||0;
-    var sy=window.scrollY||window.pageYOffset||0;
     return{
-      xRatio:(clientX+sx-r.left-sx)/r.width,
-      yOffset:(clientY+sy)-(r.top+sy),
+      xRatio:(clientX-r.left)/r.width,
+      yOffset:clientY-r.top,
       containerHeight:c.scrollHeight
     };
   }
