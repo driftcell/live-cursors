@@ -28,53 +28,6 @@ header{
 .logo span{font-size:18px}
 header nav{margin-left:auto;display:flex;align-items:center;gap:16px}
 
-/* ── presence bar ── */
-.presence{display:flex;align-items:center;gap:8px}
-.presence-avatars{display:flex;align-items:center}
-.presence-avatar{
-  width:32px;height:32px;border-radius:50%;border:2px solid #fff;margin-left:-8px;
-  flex-shrink:0;overflow:hidden;transition:margin-left .3s ease,transform .2s;
-  position:relative;cursor:pointer;text-decoration:none;
-  display:flex;align-items:center;justify-content:center;
-  font:600 13px/1 system-ui;color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.1);
-}
-.presence-avatar:first-child{margin-left:0}
-.presence-avatars:hover .presence-avatar{margin-left:4px}
-.presence-avatars:hover .presence-avatar:first-child{margin-left:0}
-.presence-avatar:hover{transform:scale(1.12);z-index:10!important}
-.presence-avatar img{width:100%;height:100%;object-fit:cover}
-.presence-overflow{
-  width:32px;height:32px;border-radius:50%;border:2px solid #fff;margin-left:-8px;
-  background:var(--muted);color:#fff;display:flex;align-items:center;justify-content:center;
-  font:700 11px/1 system-ui;box-shadow:0 1px 4px rgba(0,0,0,.1);
-}
-.nav-divider{width:1px;height:20px;background:rgba(0,0,0,.1);margin:0 8px;flex-shrink:0}
-.presence.presence--mounted{background:none;box-shadow:none;border:none;padding:0}
-
-/* ── auth ── */
-.btn-login{
-  display:inline-flex;align-items:center;gap:8px;padding:7px 16px;border-radius:8px;
-  background:#24292f;color:#fff;text-decoration:none;font:500 13px/1 system-ui;
-  transition:background .2s;border:none;cursor:pointer;
-}
-.btn-login:hover{background:#1b1f23}
-.btn-login svg{width:18px;height:18px;fill:currentColor}
-.user-info{display:flex;align-items:center;gap:10px}
-.username-link{font:500 13px/1 system-ui;color:var(--text);text-decoration:none}
-.username-link:hover{text-decoration:underline}
-.avatar-logout{
-  width:30px;height:30px;border-radius:50%;padding:0;background:none;border:1.5px solid var(--border);
-  overflow:hidden;cursor:pointer;position:relative;flex-shrink:0;transition:border-color .2s,transform .2s;
-}
-.avatar-logout:hover{border-color:#ef4444;transform:scale(1.08)}
-.avatar-logout img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
-.avatar-logout::after{
-  content:'✕';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  background:rgba(220,38,38,.75);color:#fff;font:700 13px/1 system-ui;
-  opacity:0;transition:opacity .18s;border-radius:50%;
-}
-.avatar-logout:hover::after{opacity:1}
-
 /* ── hero ── */
 .hero{
   position:relative;text-align:center;padding:160px 24px 80px;max-width:680px;margin:0 auto;
@@ -141,50 +94,6 @@ footer{
 footer a{color:var(--accent);text-decoration:none}
 footer a:hover{text-decoration:underline}
 
-/* ── remote cursors ── */
-.remote-cursor{
-  position:fixed;pointer-events:none;z-index:9999;
-  transition:left 80ms linear,top 80ms linear;opacity:0;
-  will-change:left,top;
-}
-.remote-cursor.active{opacity:1;transition:left 80ms linear,top 80ms linear,opacity .3s}
-.remote-cursor.leaving{opacity:0;transition:opacity .3s}
-.remote-cursor.touch .cursor-arrow{display:none}
-.remote-cursor.touch .cursor-touch-dot{display:flex}
-.cursor-arrow{display:block}
-.cursor-touch-dot{
-  display:none;width:28px;height:28px;border-radius:50%;opacity:.55;
-  border:2px solid #fff;box-shadow:0 0 8px rgba(0,0,0,.15);
-  margin-left:-14px;margin-top:-14px;align-items:center;justify-content:center;
-}
-.cursor-info{display:flex;align-items:center;gap:4px;margin-left:10px;margin-top:-2px}
-.remote-cursor.touch .cursor-info{margin-left:-4px;margin-top:14px}
-.cursor-avatar{width:20px;height:20px;border-radius:50%;border:1.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.12)}
-.cursor-dot{
-  width:20px;height:20px;border-radius:50%;border:1.5px solid #fff;
-  box-shadow:0 1px 4px rgba(0,0,0,.12);display:flex;align-items:center;justify-content:center;
-  color:#fff;font:bold 10px/1 system-ui;
-}
-.cursor-label{
-  padding:1px 6px;border-radius:4px;font:500 11px/1.4 system-ui;color:#fff;white-space:nowrap;
-  opacity:0;transform:translateX(-3px);transition:opacity .15s,transform .15s;
-}
-.remote-cursor:hover .cursor-label{opacity:1;transform:translateX(0)}
-
-/* ── edge indicators ── */
-.edge-indicator{
-  position:fixed;z-index:9998;display:flex;align-items:center;gap:4px;
-  padding:3px 8px 3px 4px;border-radius:12px;font:500 11px/1 system-ui;
-  color:#fff;white-space:nowrap;cursor:pointer;opacity:.8;
-  transition:opacity .2s,transform .15s;pointer-events:auto;
-}
-.edge-indicator:hover{opacity:1;transform:scale(1.06)}
-.edge-indicator .ei-av{
-  width:18px;height:18px;border-radius:50%;flex-shrink:0;overflow:hidden;
-  display:flex;align-items:center;justify-content:center;font:bold 9px/1 system-ui;color:#fff;
-}
-.edge-indicator .ei-av img{width:100%;height:100%;object-fit:cover}
-
 /* ── status indicator ── */
 .ws-status{
   position:fixed;bottom:16px;left:16px;z-index:100;
@@ -206,8 +115,6 @@ footer a:hover{text-decoration:underline}
   <div class="logo"><span>✦</span> Live Cursors</div>
   <nav>
     <div id="presenceSlot"></div>
-    <div class="nav-divider" id="navDivider" style="display:none"></div>
-    <div id="authSection"></div>
   </nav>
 </header>
 
@@ -258,388 +165,41 @@ footer a:hover{text-decoration:underline}
 
 <footer>Made with ♥ on <a href="https://developers.cloudflare.com/workers/" target="_blank">Cloudflare Workers</a></footer>
 
-<div id="cursors"></div>
-<div id="edges"></div>
-
 <div class="ws-status" id="wsStatus">
   <span class="ws-dot connecting" id="wsDot"></span>
   <span id="wsText">Connecting…</span>
 </div>
 
+<!-- ── embed.js: all cursor/presence/auth/WebSocket logic ── -->
+<script
+  src="/embed.js"
+  data-presence="#presenceSlot"
+  data-container="main"
+  data-show-cursors="true"
+  data-show-presence="true"
+  data-count-anonymous="true"
+></script>
+
+<!-- ── homepage-only extras ── -->
 <script>
 (function(){
   "use strict";
 
-  var GITHUB_CLIENT_ID = "";
-  var MAX_VISIBLE = 5;
-  var THROTTLE = 50;
-  var CONTAINER_SEL = "main";
+  // ── fill embed URL display ──
+  var embedEl = document.getElementById("embedUrl");
+  if (embedEl) embedEl.textContent = location.origin + "/embed.js";
 
-  // ── state ──
-  var ws = null;
-  var selfId = null;
-  var token = localStorage.getItem("lc_token");
-  var users = new Map();
-  var lastSend = 0, lastXR = -1, lastYO = -1;
-  var reconnectDelay = 1000;
-  var reconnectTimer = null;
-  var touchFadeTimers = {};
-
-  // ── presence bar DOM ──
-  var presenceEl = document.createElement("div");
-  presenceEl.className = "presence";
-  presenceEl.id = "presence";
-  presenceEl.innerHTML = '<div class="presence-avatars" id="presenceAvatars"></div>';
-
-  function mountPresence() {
-    var custom = document.getElementById("lc-presence-mount");
-    if (custom) {
-      presenceEl.classList.add("presence--mounted");
-      custom.appendChild(presenceEl);
-    } else {
-      document.getElementById("presenceSlot").appendChild(presenceEl);
-    }
-  }
-
-  // ── fetch config from Worker, then init auth UI ──
-  fetch("/api/config").then(function(r){return r.json()}).then(function(cfg){
-    GITHUB_CLIENT_ID = cfg.clientId || "";
-    updateAuthUI();
-  }).catch(function(){ updateAuthUI(); });
-
-  // ── init ──
-  (function init() {
-    try {
-      var params = new URLSearchParams(location.search);
-      if (params.get("token")) {
-        token = params.get("token");
-        localStorage.setItem("lc_token", token);
-        history.replaceState({}, "", "/");
-      }
-      var embedEl = document.getElementById("embedUrl");
-      if (embedEl) embedEl.textContent = location.origin + "/embed.js";
-      mountPresence();
-      updateAuthUI();
-      connect();
-    } catch (e) {
-      console.error("[live-cursors] init failed:", e);
-    }
-  })();
-
-  // ── auth UI ──
-  function updateAuthUI() {
-    var el = document.getElementById("authSection");
-    if (token) {
-      var p = parseJWT(token);
-      if (p && p.exp > Date.now() / 1000) {
-        var avatarHTML = p.avatar
-          ? '<img src="' + esc(p.avatar) + '" alt="' + esc(p.username) + '">'
-          : '<span style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:var(--accent);color:#fff;font:700 13px/1 system-ui">' + esc((p.username || '?')[0]) + '</span>';
-        el.innerHTML =
-          '<button class="avatar-logout" onclick="window.__lcLogout()" title="Sign out (@' + esc(p.username) + ')">' +
-          avatarHTML +
-          '</button>';
-        return;
-      }
-      localStorage.removeItem("lc_token");
-      token = null;
-    }
-    if (GITHUB_CLIENT_ID) {
-      el.innerHTML =
-        '<a class="btn-login" href="/auth/login">' +
-        '<svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>' +
-        "Who's Here</a>";
-    } else {
-      el.innerHTML = '<span style="color:var(--muted);font-size:12px">OAuth not configured</span>';
-    }
-  }
-
-  window.__lcLogout = function() {
-    localStorage.removeItem("lc_token");
-    token = null;
-    if (ws) ws.close();
-    location.reload();
-  };
-
-  function parseJWT(t) {
-    try { return JSON.parse(atob(t.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))); }
-    catch(e) { return null; }
-  }
-
-  function esc(s) {
-    var d = document.createElement("div"); d.textContent = s; return d.innerHTML;
-  }
-
-  // ── cursor SVG helper ──
-  function cursorSVG(color) {
-    return '<svg class="cursor-arrow" width="16" height="20" viewBox="0 0 16 20" fill="none">' +
-      '<path d="M0.5 0.5L0.5 17L5 12.5H13Z" fill="' + color + '" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/></svg>';
-  }
-
-  // ── coordinate helpers (container-based, scroll-aware) ──
-  function getContainer() {
-    return document.querySelector(CONTAINER_SEL) || document.documentElement;
-  }
-
-  function getCursorPos(clientX, clientY) {
-    var c = getContainer();
-    var r = c.getBoundingClientRect();
-    var sy = window.scrollY || window.pageYOffset || 0;
-    var sx = window.scrollX || window.pageXOffset || 0;
-    return {
-      xRatio: (clientX - r.left) / r.width,
-      yOffset: (clientY + sy) - (r.top + sy),
-      containerHeight: c.scrollHeight
-    };
-  }
-
-  function resolvePos(pos) {
-    var c = getContainer();
-    var r = c.getBoundingClientRect();
-    var sy = window.scrollY || window.pageYOffset || 0;
-    var cdt = r.top + sy;
-    var lx = r.left + pos.xRatio * r.width;
-    var ly = (cdt + pos.yOffset) - sy;
-    return { x: lx, y: ly, vis: ly >= -30 && ly <= window.innerHeight + 30 };
-  }
-
-  // ── WebSocket ──
-  function connect() {
-    setStatus("connecting");
-    var proto = location.protocol === "https:" ? "wss:" : "ws:";
-    var room = encodeURIComponent(location.pathname);
-    var url = proto + "//" + location.host + "/ws?room=" + room;
-    if (token) url += "&token=" + encodeURIComponent(token);
-
-    ws = new WebSocket(url);
-    ws.onopen = function() { reconnectDelay = 1000; setStatus("connected"); };
-    ws.onmessage = function(e) { try { handle(JSON.parse(e.data)); } catch(x){} };
-    ws.onclose = function() {
-      ws = null; setStatus("disconnected");
-      users.forEach(function(u) { if(u.el) u.el.remove(); if(u.edgeEl) u.edgeEl.remove(); });
-      users.clear(); updatePresenceBar();
-      Object.keys(touchFadeTimers).forEach(function(k) { clearTimeout(touchFadeTimers[k]); });
-      touchFadeTimers = {};
-      scheduleReconnect();
-    };
-    ws.onerror = function() {};
-  }
-
-  function scheduleReconnect() {
-    if (reconnectTimer) return;
-    reconnectTimer = setTimeout(function() {
-      reconnectTimer = null;
-      reconnectDelay = Math.min(reconnectDelay * 1.5, 30000);
-      connect();
-    }, reconnectDelay);
-  }
-
-  function setStatus(s) {
+  // ── listen for connection status from embed.js ──
+  window.addEventListener("lc:status", function(e) {
+    var s = e.detail.status;
     var dot = document.getElementById("wsDot");
     var txt = document.getElementById("wsText");
+    var wrap = document.getElementById("wsStatus");
+    if (!dot || !txt || !wrap) return;
     dot.className = "ws-dot " + s;
     txt.textContent = s === "connected" ? "Connected" : s === "connecting" ? "Connecting…" : "Reconnecting…";
-    document.getElementById("wsStatus").style.opacity = s === "connected" ? "0" : "1";
-  }
-
-  // ── message handler ──
-  function handle(msg) {
-    switch (msg.type) {
-      case "ping":
-        if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "pong" }));
-        break;
-      case "init":
-        selfId = msg.self;
-        msg.users.forEach(function(u) { if (u.id !== selfId) addUser(u); });
-        updatePresenceBar();
-        break;
-      case "join":
-        addUser(msg.user);
-        updatePresenceBar();
-        break;
-      case "cursor":
-        moveCursor(msg);
-        break;
-      case "leave":
-        removeUser(msg.id);
-        updatePresenceBar();
-        break;
-    }
-  }
-
-  // ── cursor management ──
-  function addUser(u) {
-    if (users.has(u.id)) return;
-    var el = document.createElement("div");
-    el.className = "remote-cursor";
-    var c = u.color || "#6366f1";
-    el.innerHTML = cursorSVG(c) +
-      '<div class="cursor-touch-dot" style="background:' + c + '"></div>' +
-      '<div class="cursor-info">' +
-      (u.avatar
-        ? '<img class="cursor-avatar" src="' + esc(u.avatar) + '" alt="' + esc(u.username) + '">'
-        : '<div class="cursor-dot" style="background:' + c + '">' + esc(u.username[0]) + '</div>') +
-      '<span class="cursor-label" style="background:' + c + '">' + esc(u.username) + '</span>' +
-      '</div>';
-    document.getElementById("cursors").appendChild(el);
-    users.set(u.id, {
-      username: u.username, avatar: u.avatar, url: u.url, color: c, el: el, edgeEl: null,
-      xRatio: u.xRatio || -1, yOffset: u.yOffset || -1,
-      inputType: u.inputType || "mouse", containerHeight: u.containerHeight || 0
-    });
-  }
-
-  function moveCursor(msg) {
-    var u = users.get(msg.id);
-    if (!u) return;
-    u.xRatio = msg.xRatio; u.yOffset = msg.yOffset;
-    u.inputType = msg.inputType || "mouse";
-    u.containerHeight = msg.containerHeight || 0;
-
-    if (msg.inputType === "touch") u.el.classList.add("touch");
-    else u.el.classList.remove("touch");
-
-    if (touchFadeTimers[msg.id]) { clearTimeout(touchFadeTimers[msg.id]); delete touchFadeTimers[msg.id]; }
-
-    var p = resolvePos(msg);
-    if (p.vis) {
-      u.el.style.left = p.x + "px";
-      u.el.style.top = p.y + "px";
-      if (!u.el.classList.contains("active")) u.el.classList.add("active");
-      removeEdge(msg.id);
-    } else {
-      u.el.classList.remove("active");
-      showEdge(msg.id, u, p);
-    }
-
-    if (msg.inputType === "touch") {
-      touchFadeTimers[msg.id] = setTimeout(function() { u.el.classList.remove("active"); }, 3000);
-    }
-  }
-
-  function showEdge(id, u, p) {
-    var isTop = p.y < 0;
-    if (!u.edgeEl) {
-      u.edgeEl = document.createElement("div");
-      u.edgeEl.className = "edge-indicator";
-      var av = u.avatar
-        ? '<div class="ei-av"><img src="' + esc(u.avatar) + '"></div>'
-        : '<div class="ei-av" style="background:' + u.color + '">' + esc(u.username[0]) + '</div>';
-      u.edgeEl.innerHTML = av + " " + esc(u.username);
-      u.edgeEl.style.background = u.color;
-      u.edgeEl.onclick = function() {
-        var sy = window.scrollY || window.pageYOffset || 0;
-        window.scrollTo({ top: sy + (p.y - window.innerHeight / 2), behavior: "smooth" });
-      };
-      document.getElementById("edges").appendChild(u.edgeEl);
-    }
-    var cx = Math.max(8, Math.min(p.x, window.innerWidth - 120));
-    u.edgeEl.style.left = cx + "px";
-    if (isTop) { u.edgeEl.style.top = "64px"; u.edgeEl.style.bottom = ""; }
-    else { u.edgeEl.style.bottom = "8px"; u.edgeEl.style.top = ""; }
-  }
-
-  function removeEdge(id) {
-    var u = users.get(id);
-    if (!u || !u.edgeEl) return;
-    u.edgeEl.remove(); u.edgeEl = null;
-  }
-
-  function removeUser(id) {
-    var u = users.get(id);
-    if (!u) return;
-    u.el.classList.remove("active");
-    u.el.classList.add("leaving");
-    if (u.edgeEl) u.edgeEl.remove();
-    if (touchFadeTimers[id]) { clearTimeout(touchFadeTimers[id]); delete touchFadeTimers[id]; }
-    setTimeout(function() { u.el.remove(); users.delete(id); }, 300);
-  }
-
-  // ── presence bar ──
-  function updatePresenceBar() {
-    var bar = document.getElementById("presenceAvatars");
-    bar.innerHTML = "";
-
-    var arr = Array.from(users.values());
-    var vis = arr.slice(0, MAX_VISIBLE);
-    var over = arr.length - vis.length;
-
-    vis.forEach(function(u, i) {
-      if (u.avatar) {
-        var a = document.createElement("a");
-        a.className = "presence-avatar";
-        a.href = u.url; a.target = "_blank"; a.title = u.username;
-        a.style.zIndex = String(100 - i);
-        var img = document.createElement("img");
-        img.src = u.avatar; img.alt = u.username;
-        a.appendChild(img); bar.appendChild(a);
-      } else {
-        var d = document.createElement("div");
-        d.className = "presence-avatar";
-        d.style.backgroundColor = u.color;
-        d.style.zIndex = String(100 - i);
-        d.title = u.username;
-        d.textContent = u.username[0];
-        bar.appendChild(d);
-      }
-    });
-
-    if (over > 0) {
-      var b = document.createElement("div");
-      b.className = "presence-overflow";
-      b.textContent = "+" + over;
-      bar.appendChild(b);
-    }
-
-    var divider = document.getElementById("navDivider");
-    if (divider) divider.style.display = arr.length > 0 ? "" : "none";
-  }
-
-  // ── mouse / touch tracking ──
-  document.addEventListener("mousemove", function(e) {
-    sendPos(e.clientX, e.clientY, "mouse");
+    wrap.style.opacity = s === "connected" ? "0" : "1";
   });
-  document.addEventListener("touchmove", function(e) {
-    var t = e.touches[0]; if (!t) return;
-    sendPos(t.clientX, t.clientY, "touch");
-  }, { passive: true });
-
-  function sendPos(cx, cy, inputType) {
-    var now = Date.now();
-    if (now - lastSend < THROTTLE) return;
-    var pos = getCursorPos(cx, cy);
-    if (Math.abs(pos.xRatio - lastXR) < 0.001 && Math.abs(pos.yOffset - lastYO) < 1) return;
-    lastXR = pos.xRatio; lastYO = pos.yOffset; lastSend = now;
-    if (ws && ws.readyState === 1) ws.send(JSON.stringify({
-      type: "cursor", xRatio: pos.xRatio, yOffset: pos.yOffset,
-      inputType: inputType, containerHeight: pos.containerHeight
-    }));
-  }
-
-  // ── update positions on scroll ──
-  var scrollTick = false;
-  window.addEventListener("scroll", function() {
-    if (scrollTick) return; scrollTick = true;
-    requestAnimationFrame(function() {
-      scrollTick = false;
-      users.forEach(function(u, id) {
-        if (u.xRatio < 0) return;
-        var p = resolvePos(u);
-        if (p.vis) {
-          u.el.style.left = p.x + "px"; u.el.style.top = p.y + "px";
-          u.el.classList.add("active");
-          removeEdge(id);
-        } else {
-          u.el.classList.remove("active");
-          showEdge(id, u, p);
-        }
-      });
-    });
-  }, { passive: true });
-
-  function closeWs() { if (ws) { ws.close(); ws = null; } }
-  window.addEventListener("beforeunload", closeWs);
-  window.addEventListener("pagehide", closeWs);
 
   // ── copy embed code ──
   window.copyEmbed = function() {
@@ -661,7 +221,6 @@ footer a:hover{text-decoration:underline}
       setTimeout(function() { btn.textContent = "Copy"; }, 2000);
     });
   };
-
 })();
 </script>
 </body>
