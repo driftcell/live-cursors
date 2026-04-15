@@ -14,6 +14,7 @@ import { InkLayer } from './ink';
 import { SelectionLayer } from './selection';
 import { ReactionsLayer, REACTION_KEYS } from './reactions';
 import { FollowMode } from './follow';
+import { Palimpsest } from './palimpsest';
 
 const IDLE_MS = 30_000;         // remote cursor dims after this much silence
 const ACTIVE_MS = 1_500;         // presence halo stays while user moved recently
@@ -33,6 +34,7 @@ export class LiveCursorsEngine {
   private selection!: SelectionLayer;
   private reactions!: ReactionsLayer;
   private follow!: FollowMode;
+  private palimpsest: Palimpsest | null = null;
 
   // state
   private users = new Map<string, RemoteUser>();
@@ -74,7 +76,7 @@ export class LiveCursorsEngine {
   private boundVisibility = () => this.onVisibility();
   private boundSelection = () => this.selection.onLocalChange();
   private boundUnload = () => this.conn?.stop();
-  private boundResize = () => this.scheduleRelayout();
+  private boundResize = () => { this.palimpsest?.resize(); this.scheduleRelayout(); };
 
   constructor(cfg: EngineConfig) {
     this.cfg = {
@@ -93,6 +95,7 @@ export class LiveCursorsEngine {
       showReactions: cfg.showReactions !== false,
       idleFade: cfg.idleFade !== false,
       activeHalo: cfg.activeHalo !== false,
+      palimpsest: cfg.palimpsest === true,
       countAnonymous: cfg.countAnonymous !== false,
       telemetryEnabled: cfg.telemetryEnabled === true,
       throttleMs: cfg.throttleMs || 50,
@@ -110,6 +113,10 @@ export class LiveCursorsEngine {
     this.active = true;
     injectStyles();
 
+    if (this.cfg.palimpsest) {
+      this.palimpsest = new Palimpsest(document.body, () => this.container());
+      this.palimpsest.load(this.cfg.server, this.cfg.room);
+    }
     this.cursors = new CursorLayer(document.body);
     this.chat = new ChatLayer(this.cfg.showChat, document.body);
     this.overlay = new OverlaySvg(document.body);
@@ -166,6 +173,7 @@ export class LiveCursorsEngine {
     this.chat?.destroy();
     this.presence?.destroy();
     this.overlay?.destroy();
+    this.palimpsest?.destroy();
     this.follow?.stop();
   }
 
@@ -248,6 +256,7 @@ export class LiveCursorsEngine {
         }
       }
       this.overlay.relayout(this.users.values(), container);
+      this.palimpsest?.paint();
     });
   }
 

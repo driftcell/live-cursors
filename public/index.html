@@ -277,6 +277,10 @@ footer a:hover{text-decoration:underline}
           <div class="toggle"><input type="checkbox" id="cfg-halo" checked><span class="slider"></span></div>
         </label>
         <label class="cfg-item">
+          <div><div class="cfg-name">Palimpsest</div><div class="cfg-desc">The page remembers past visitors</div></div>
+          <div class="toggle"><input type="checkbox" id="cfg-palimpsest"><span class="slider"></span></div>
+        </label>
+        <label class="cfg-item">
           <div><div class="cfg-name">Telemetry</div><div class="cfg-desc">Fetch &amp; show site analytics</div></div>
           <div class="toggle"><input type="checkbox" id="cfg-telemetry" checked><span class="slider"></span></div>
         </label>
@@ -330,6 +334,7 @@ footer a:hover{text-decoration:underline}
   data-show-reactions="true"
   data-idle-fade="true"
   data-active-halo="true"
+  data-palimpsest="true"
   data-count-anonymous="true"
   data-telemetry="true"
 ></script>
@@ -353,6 +358,7 @@ footer a:hover{text-decoration:underline}
     { key: "show-reactions",  el: "cfg-reactions", def: true  },
     { key: "idle-fade",       el: "cfg-idle",      def: true  },
     { key: "active-halo",     el: "cfg-halo",      def: true  },
+    { key: "palimpsest",      el: "cfg-palimpsest", def: false },
     { key: "count-anonymous", el: "cfg-anonymous", def: true  },
     { key: "telemetry",       el: "cfg-telemetry",  def: true  }
   ];

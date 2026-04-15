@@ -27,6 +27,7 @@ import type { EngineConfig } from './types';
     showReactions:     attr('data-show-reactions') !== 'false',
     idleFade:          attr('data-idle-fade') !== 'false',
     activeHalo:        attr('data-active-halo') !== 'false',
+    palimpsest:        attr('data-palimpsest') === 'true',
     countAnonymous:    attr('data-count-anonymous') !== 'false',
     telemetryEnabled:  attr('data-telemetry') === 'true',
     throttleMs:        parseInt(attr('data-throttle') || '50', 10) || 50,

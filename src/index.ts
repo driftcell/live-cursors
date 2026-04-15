@@ -1,6 +1,7 @@
 import { CursorRoom } from './cursor-room';
 import { signJWT, verifyJWT } from './auth';
 import { ensureStatsTable, getStats } from './stats';
+import { ensurePathsTable, queryPaths, X_BUCKETS, Y_BUCKET_PX, RETENTION_MS } from './paths';
 import type { Env } from './types';
 
 export { CursorRoom };
@@ -92,6 +93,34 @@ export default {
       } catch (err) {
         log('ERROR', 'stats_api_error', { error: String(err) });
         return respond(new Response(JSON.stringify({ error: 'Stats unavailable' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        }));
+      }
+    }
+
+    // Palimpsest — aggregated cursor-trail buckets for a site
+    if (url.pathname === '/api/paths') {
+      const site = url.searchParams.get('site') || '/';
+      try {
+        await ensurePathsTable(env.DB);
+        const samples = await queryPaths(env.DB, site);
+        return respond(new Response(JSON.stringify({
+          site,
+          x_buckets: X_BUCKETS,
+          y_bucket_px: Y_BUCKET_PX,
+          retention_ms: RETENTION_MS,
+          samples,
+        }), {
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'public, max-age=60',
+          },
+        }));
+      } catch (err) {
+        log('ERROR', 'paths_api_error', { error: String(err) });
+        return respond(new Response(JSON.stringify({ error: 'Paths unavailable' }), {
           status: 500,
           headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
         }));

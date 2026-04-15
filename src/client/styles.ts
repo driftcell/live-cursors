@@ -90,6 +90,10 @@ const CSS = `
 .lc-typing-dot:nth-child(3){animation-delay:.3s}
 @keyframes lc-typing-bounce{0%,100%{transform:translateY(0);opacity:.4}50%{transform:translateY(-4px);opacity:1}}
 
+/* palimpsest — canvas behind all content; pinned to viewport, repainted on scroll */
+.lc-palimpsest{position:fixed;inset:0;pointer-events:none;z-index:0;mix-blend-mode:multiply}
+@media (prefers-color-scheme:dark){.lc-palimpsest{mix-blend-mode:screen}}
+
 /* ink + selection — single viewport-spanning svg pinned under cursors */
 .lc-overlay-svg{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:999996;overflow:visible}
 .lc-ink-path{fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:2.5;opacity:.85;transition:opacity .6s}

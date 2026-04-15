@@ -1,5 +1,6 @@
 import { DurableObject } from 'cloudflare:workers';
 import { ensureStatsTable, recordVisits, getStats, pushTelemetry } from './stats';
+import { ensurePathsTable, flushPaths, purgeStalePaths, X_BUCKETS, Y_BUCKET_PX, type BufferedSample } from './paths';
 import type { Env } from './types';
 
 interface UserInfo {
@@ -42,6 +43,11 @@ const MAX_CONNECTIONS_PER_ROOM = 200;
 const MAX_MESSAGE_SIZE = 1024;   // bytes – cursor payloads are ~150 B, leave headroom for deep snap paths
 const MAX_CHAT_LENGTH = 128;     // max characters per chat message
 const CHAT_HISTORY_SIZE = 20;    // ring buffer capacity for recent chat messages
+
+// ── palimpsest sampling ───────────────────────────────────────────────────
+const PATH_SAMPLE_MS = 60_000;     // one sample per active user every 60s
+const PATH_FLUSH_MS = 5 * 60_000;  // flush aggregated buckets every 5 min
+const PATH_MAX_BUFFERED = 2000;    // hard cap on the in-memory buffer
 
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -90,6 +96,11 @@ export class CursorRoom extends DurableObject<Env> {
   private chatHistory: ChatEntry[] = [];
   // ── multi-tab dedup: track session count per logical user id ────────────
   private sessionsPerUser: Map<string, number> = new Map();
+  // ── palimpsest sampling buffer ──────────────────────────────────────────
+  private pathsReady = false;
+  private pathsBuffer: Map<string, BufferedSample> = new Map();
+  private pathSampleTimer: ReturnType<typeof setInterval> | null = null;
+  private pathFlushTimer: ReturnType<typeof setInterval> | null = null;
   // ── D1 write batching ─────────────────────────────────────────────────
   private visitBuffer = 0;
   private statsFlushTimer: ReturnType<typeof setTimeout> | null = null;
@@ -99,6 +110,46 @@ export class CursorRoom extends DurableObject<Env> {
     super(ctx, env);
     this.sessions = new Map();
     setInterval(() => this.heartbeat(), PING_INTERVAL);
+    this.pathSampleTimer = setInterval(() => this.samplePaths(), PATH_SAMPLE_MS);
+    this.pathFlushTimer = setInterval(() => this.flushPathsNow().catch(() => {}), PATH_FLUSH_MS);
+  }
+
+  /* ── palimpsest sampling ───────────────────────────────────────────────── */
+
+  private samplePaths() {
+    if (this.sessions.size === 0 || this.pathsBuffer.size >= PATH_MAX_BUFFERED) return;
+    const now = Date.now();
+    // One bucket per distinct user id per tick (dedup multi-tab).
+    const seen = new Set<string>();
+    for (const u of this.sessions.values()) {
+      if (seen.has(u.id)) continue;
+      seen.add(u.id);
+      if (u.xRatio < 0 || u.yOffset < 0) continue;
+      const xb = Math.max(0, Math.min(X_BUCKETS - 1, Math.floor(u.xRatio * X_BUCKETS)));
+      const yb = Math.max(0, Math.floor(u.yOffset / Y_BUCKET_PX));
+      const color = u.color || '#6366f1';
+      const key = `${xb}:${yb}:${color}`;
+      const existing = this.pathsBuffer.get(key);
+      if (existing) { existing.hits += 1; existing.lastTs = now; }
+      else this.pathsBuffer.set(key, { xb, yb, color, hits: 1, lastTs: now });
+    }
+  }
+
+  private async flushPathsNow(): Promise<void> {
+    if (this.pathsBuffer.size === 0) return;
+    try {
+      if (!this.pathsReady) {
+        await ensurePathsTable(this.env.DB);
+        this.pathsReady = true;
+      }
+      const batch = Array.from(this.pathsBuffer.values());
+      this.pathsBuffer.clear();
+      await flushPaths(this.env.DB, this.roomName, batch);
+      // Cheap per-flush retention pass (rare, site-scoped).
+      await purgeStalePaths(this.env.DB, this.roomName);
+    } catch (err) {
+      doLog('WARN', 'paths_flush_failed', { error: String(err) });
+    }
   }
 
   // ── broadcast batching ────────────────────────────────────────────────────
