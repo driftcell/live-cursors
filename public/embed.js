@@ -12,6 +12,7 @@
   const showLogin=attr("data-show-login")!=="false";
   const countAnonymous=attr("data-count-anonymous")!=="false";
   const showSnap=attr("data-show-snap")==="true";
+  const showChat=attr("data-show-chat")!=="false";
   const throttleMs=parseInt(attr("data-throttle")||"50",10)||50;
   const telemetryEnabled=attr("data-telemetry")==="true";
 
@@ -91,6 +92,15 @@
     .lc-snap-avatar{width:16px;height:16px;border-radius:50%;border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.1)}
     .lc-snap-dot{width:16px;height:16px;border-radius:50%;border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center;color:#fff;font:bold 8px/1 system-ui}
     @keyframes lc-snap-in{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+    .lc-chat-bubble{position:absolute;left:22px;top:-8px;max-width:200px;padding:4px 10px;border-radius:10px;font:500 12px/1.5 system-ui;color:#fff;white-space:pre-wrap;word-break:break-word;pointer-events:none;opacity:1;transition:opacity .5s;animation:lc-chat-in .2s ease}
+    .lc-chat-bubble.fade{opacity:0}
+    .lc-cursor.touch .lc-chat-bubble{left:-4px;top:-32px}
+    @keyframes lc-chat-in{from{opacity:0;transform:translateY(4px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+    .lc-chat-input-wrap{position:fixed;z-index:1000000;pointer-events:auto}
+    .lc-chat-input{border:none;outline:none;padding:4px 10px;border-radius:10px;font:500 13px/1.5 system-ui;color:#fff;min-width:60px;max-width:220px;box-shadow:0 2px 12px rgba(0,0,0,.15);caret-color:#fff}
+    .lc-chat-input::placeholder{color:rgba(255,255,255,.6)}
+    .lc-chat-hint{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:999997;padding:6px 14px;border-radius:8px;background:rgba(0,0,0,.7);color:#fff;font:500 12px/1 system-ui;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+    .lc-chat-hint.visible{opacity:1}
   `;
   document.head.appendChild(style);
 
@@ -241,6 +251,7 @@
     else if(m.type==="join"){addUser(m.user);updatePresence();}
     else if(m.type==="cursor"){moveCursor(m);}
     else if(m.type==="cursor_batch"){if(m.cursors)m.cursors.forEach(function(c){if(c.id!==selfId){if(!users.has(c.id)&&c.username)addUser(c);moveCursor(c);}});}
+    else if(m.type==="chat"){showChatBubble(m.id,m.text);}
     else if(m.type==="leave"){removeUser(m.id);updatePresence();}
     else if(m.type==="error"){try{window.dispatchEvent(new CustomEvent("lc:error",{detail:m}));}catch(ex){}}
   }
@@ -263,7 +274,7 @@
       el.appendChild(info);
       cursorsDiv.appendChild(el);
     }
-    users.set(u.id,{username:u.username,avatar:u.avatar,url:u.url,color:c,el:el,edgeEl:null,xRatio:u.xRatio||-1,yOffset:u.yOffset||-1,inputType:u.inputType||"mouse",containerHeight:u.containerHeight||0,_snapEl:null,_snapBadge:null,_snapTarget:null});
+    users.set(u.id,{username:u.username,avatar:u.avatar,url:u.url,color:c,el:el,edgeEl:null,xRatio:u.xRatio||-1,yOffset:u.yOffset||-1,inputType:u.inputType||"mouse",containerHeight:u.containerHeight||0,_snapEl:null,_snapBadge:null,_snapTarget:null,_chatBubble:null,_chatTimer:null});
   }
 
   function moveCursor(m){
@@ -404,6 +415,129 @@
       authEl.appendChild(loginBtn);
     }
   }
+
+  /* ── cursor chat ── */
+  var CHAT_BUBBLE_DURATION=4000;
+  var CHAT_FADE_DURATION=500;
+  var chatInputEl=null;
+  var selfMouseX=0,selfMouseY=0;
+  var selfColor="#6366f1";
+
+  // Track self mouse position for chat input placement
+  document.addEventListener("mousemove",function(e){selfMouseX=e.clientX;selfMouseY=e.clientY;});
+
+  function showChatBubble(userId,text){
+    if(!showChat)return;
+    var u=users.get(userId);if(!u||!u.el||!showCursors)return;
+    // Remove existing bubble
+    if(u._chatTimer){clearTimeout(u._chatTimer);u._chatTimer=null;}
+    if(u._chatBubble){u._chatBubble.remove();u._chatBubble=null;}
+    // Create new bubble
+    var bubble=document.createElement("div");
+    bubble.className="lc-chat-bubble";
+    bubble.style.background=u.color;
+    bubble.textContent=text;
+    u.el.appendChild(bubble);
+    u._chatBubble=bubble;
+    // Fade and remove
+    u._chatTimer=setTimeout(function(){
+      bubble.classList.add("fade");
+      setTimeout(function(){
+        if(u._chatBubble===bubble){bubble.remove();u._chatBubble=null;}
+      },CHAT_FADE_DURATION);
+      u._chatTimer=null;
+    },CHAT_BUBBLE_DURATION);
+  }
+
+  function openChatInput(){
+    if(!showChat||chatInputEl)return;
+    var wrap=document.createElement("div");
+    wrap.className="lc-chat-input-wrap";
+    wrap.style.left=(selfMouseX+18)+"px";
+    wrap.style.top=(selfMouseY-6)+"px";
+    var input=document.createElement("input");
+    input.className="lc-chat-input";
+    input.style.background=selfColor;
+    input.setAttribute("maxlength","128");
+    input.setAttribute("placeholder","Say something…");
+    input.setAttribute("autocomplete","off");
+    wrap.appendChild(input);
+    document.body.appendChild(wrap);
+    chatInputEl=wrap;
+    // Prevent cursor tracking while typing
+    input.addEventListener("mousemove",function(e){e.stopPropagation();});
+    input.focus();
+    input.addEventListener("keydown",function(e){
+      if(e.key==="Enter"){
+        var text=input.value.trim();
+        if(text&&ws&&ws.readyState===1){
+          ws.send(JSON.stringify({type:"chat",text:text}));
+        }
+        closeChatInput();
+        e.preventDefault();
+      } else if(e.key==="Escape"){
+        closeChatInput();
+        e.preventDefault();
+      }
+      e.stopPropagation();
+    });
+    input.addEventListener("keyup",function(e){e.stopPropagation();});
+    input.addEventListener("keypress",function(e){e.stopPropagation();});
+    input.addEventListener("blur",function(){closeChatInput();});
+  }
+
+  function closeChatInput(){
+    if(!chatInputEl)return;
+    chatInputEl.remove();
+    chatInputEl=null;
+  }
+
+  // Show chat hint when others are present
+  var chatHint=document.createElement("div");
+  chatHint.className="lc-chat-hint";
+  chatHint.textContent="Press / to chat";
+  document.body.appendChild(chatHint);
+  var hintTimer=null;
+  function flashChatHint(){
+    if(hintTimer){clearTimeout(hintTimer);hintTimer=null;}
+    chatHint.classList.add("visible");
+    hintTimer=setTimeout(function(){chatHint.classList.remove("visible");hintTimer=null;},3000);
+  }
+  // Flash hint briefly when first user joins
+  var hintShown=false;
+  var origAddUser=addUser;
+  addUser=function(u){
+    origAddUser(u);
+    if(!hintShown&&users.size>=1){hintShown=true;setTimeout(flashChatHint,800);}
+  };
+
+  // Pick selfColor from init message
+  var origHandle=handle;
+  handle=function(m){
+    origHandle(m);
+    if(m.type==="init"){
+      // Find our color — server assigns it, we can read it from the users list or default
+      // Actually, self color isn't in init users (we're excluded). Use a heuristic from the server.
+      // For simplicity, pick a color based on selfId hash
+      if(selfId){
+        var hash=0;for(var i=0;i<selfId.length;i++){hash=((hash<<5)-hash)+selfId.charCodeAt(i);hash|=0;}
+        var colors=['#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7','#DDA0DD','#98D8C8','#F7DC6F','#BB8FCE','#85C1E9'];
+        selfColor=colors[Math.abs(hash)%colors.length];
+      }
+    }
+  };
+
+  // Keyboard shortcut: "/" opens chat
+  document.addEventListener("keydown",function(e){
+    if(chatInputEl)return;
+    // Don't trigger in input/textarea/contenteditable
+    var tag=e.target.tagName;
+    if(tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT"||e.target.isContentEditable)return;
+    if(e.key==="/"&&!e.ctrlKey&&!e.metaKey&&!e.altKey){
+      e.preventDefault();
+      openChatInput();
+    }
+  });
 
   /* ── update edges on scroll ── */
   let scrollTick=false;

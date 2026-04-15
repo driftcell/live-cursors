@@ -179,6 +179,7 @@ footer a:hover{text-decoration:underline}
     <div class="feature-card"><div class="icon">⚡</div><h3>Real-time Sync</h3><p>Cursor positions broadcast instantly via Durable Objects with WebSocket connections.</p></div>
     <div class="feature-card"><div class="icon">🎯</div><h3>Scroll &amp; Screen Aware</h3><p>Document-absolute coordinates ensure cursors point at the same content regardless of viewport size or scroll position.</p></div>
     <div class="feature-card"><div class="icon">📱</div><h3>Touch Friendly</h3><p>Touch devices get a distinct soft-circle cursor that fades naturally when the finger lifts.</p></div>
+    <div class="feature-card"><div class="icon">💬</div><h3>Cursor Chat</h3><p>Press / to type a message — it appears as a bubble on your cursor, visible to everyone in real-time.</p></div>
     <div class="feature-card"><div class="icon">🔐</div><h3>GitHub OAuth</h3><p>Optional sign-in shows your avatar on cursors and the presence bar.</p></div>
     <div class="feature-card"><div class="icon">🌐</div><h3>Zero Cost</h3><p>Built entirely on Cloudflare's free tier — Workers, Durable Objects, no servers to maintain.</p></div>
     <div class="feature-card"><div class="icon">📦</div><h3>Embed SDK</h3><p>One script tag adds live cursors to any page, with rich configuration options.</p></div>
@@ -201,6 +202,10 @@ footer a:hover{text-decoration:underline}
         <label class="cfg-item">
           <div><div class="cfg-name">Login</div><div class="cfg-desc">GitHub sign-in button</div></div>
           <div class="toggle"><input type="checkbox" id="cfg-login" checked><span class="slider"></span></div>
+        </label>
+        <label class="cfg-item">
+          <div><div class="cfg-name">Cursor Chat</div><div class="cfg-desc">Press / to chat at your cursor</div></div>
+          <div class="toggle"><input type="checkbox" id="cfg-chat" checked><span class="slider"></span></div>
         </label>
         <label class="cfg-item">
           <div><div class="cfg-name">Element Snap</div><div class="cfg-desc">Snap cursor to hovered elements</div></div>
@@ -269,6 +274,7 @@ footer a:hover{text-decoration:underline}
     { key: "show-cursors",    el: "cfg-cursors",   def: true  },
     { key: "show-presence",   el: "cfg-presence",  def: true  },
     { key: "show-login",      el: "cfg-login",     def: true  },
+    { key: "show-chat",       el: "cfg-chat",      def: true  },
     { key: "show-snap",       el: "cfg-snap",      def: false },
     { key: "count-anonymous", el: "cfg-anonymous", def: true  },
     { key: "telemetry",       el: "cfg-telemetry",  def: true  }

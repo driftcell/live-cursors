@@ -10,6 +10,7 @@ Move your cursor around — everyone sees each other in real-time. Scroll-aware,
 - 🎯 **Scroll & Screen Aware** — Document-absolute coordinates ensure cursors point at the same content regardless of viewport size or scroll position. X-axis uses container-relative percentages for responsive layouts; Y-axis uses absolute pixel offsets so cursors always land on the right paragraph.
 - 📱 **Touch Friendly** — Touch devices get a distinct soft-circle cursor that fades naturally when the finger lifts.
 - 🔭 **Edge Indicators** — When a remote cursor is outside your viewport, a clickable badge appears at the screen edge showing who's above or below. Click to scroll to them.
+- 💬 **Cursor Chat** — Press `/` to type a message that appears as a bubble on your cursor, visible to everyone in real-time. Bubbles auto-fade after 4 seconds.
 - 🔐 **GitHub OAuth** — Optional sign-in shows your avatar on cursors and the presence bar.
 - 🌐 **Zero Cost** — Built entirely on Cloudflare's free tier. No servers to maintain.
 - 📦 **Embed SDK** — One line of code adds live cursors to any page with rich configuration.
@@ -39,6 +40,7 @@ All options are set via `data-*` attributes on the script tag:
 | `data-show-cursors` | `"true"` | Set to `"false"` to hide remote cursors (presence bar still works) |
 | `data-show-presence` | `"true"` | Set to `"false"` to hide the presence bar |
 | `data-show-login` | `"true"` | Set to `"false"` to hide the GitHub sign-in button |
+| `data-show-chat` | `"true"` | Set to `"false"` to disable cursor chat (press `/` to send messages as bubbles on your cursor) |
 | `data-show-snap` | `"false"` | Set to `"true"` to enable element-snap mode — cursors highlight the hovered DOM element instead of showing a free-form pointer |
 | `data-count-anonymous` | `"true"` | Set to `"false"` to exclude anonymous (non-OAuth) users from the online count and presence avatars |
 | `data-telemetry` | `"true"` | Set to `"false"` to disable fetching and displaying site analytics (total visits, online count, peak online) |

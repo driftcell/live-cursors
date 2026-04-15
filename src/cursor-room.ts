@@ -40,6 +40,7 @@ const RATE_LIMIT_MAX = 30;       // max messages per window (50ms client ≈ 20/
 // ── connection & message limits ───────────────────────────────────────────
 const MAX_CONNECTIONS_PER_ROOM = 200;
 const MAX_MESSAGE_SIZE = 1024;   // bytes – cursor payloads are ~150 B, leave headroom for deep snap paths
+const MAX_CHAT_LENGTH = 128;     // max characters per chat message
 
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -257,6 +258,19 @@ export class CursorRoom extends DurableObject<Env> {
       const data = JSON.parse(raw);
       if (data.type === 'pong') {
         user.lastPong = now;
+        return;
+      }
+      if (data.type === 'chat') {
+        const text = typeof data.text === 'string' ? data.text.slice(0, MAX_CHAT_LENGTH).trim() : '';
+        if (!text) return;
+        this.broadcast(
+          JSON.stringify({
+            type: 'chat',
+            id: user.id,
+            text,
+          }),
+          ws,
+        );
         return;
       }
       if (data.type === 'cursor') {
