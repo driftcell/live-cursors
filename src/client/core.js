@@ -54,9 +54,10 @@ var LC_STYLES = `
   .lc-snap-avatar{width:16px;height:16px;border-radius:50%;border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.1)}
   .lc-snap-dot{width:16px;height:16px;border-radius:50%;border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center;color:#fff;font:bold 8px/1 system-ui}
   @keyframes lc-snap-in{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
-  .lc-chat-bubble{position:absolute;left:22px;top:-8px;max-width:200px;padding:4px 10px;border-radius:10px;font:500 12px/1.5 system-ui;color:#fff;white-space:pre-wrap;word-break:break-word;pointer-events:none;opacity:1;transition:opacity .5s;animation:lc-chat-in .2s ease}
+  .lc-chat-stack{position:absolute;left:22px;bottom:100%;margin-bottom:4px;display:flex;flex-direction:column;align-items:flex-start;gap:3px;pointer-events:none;max-width:220px}
+  .lc-cursor.touch .lc-chat-stack{left:-4px;bottom:auto;top:100%;margin-bottom:0;margin-top:4px}
+  .lc-chat-bubble{padding:5px 10px;border-radius:10px;font:500 12px/1.5 system-ui;color:#fff;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word;pointer-events:none;opacity:1;transition:opacity .5s;animation:lc-chat-in .2s ease;max-width:100%}
   .lc-chat-bubble.fade{opacity:0}
-  .lc-cursor.touch .lc-chat-bubble{left:-4px;top:-32px}
   @keyframes lc-chat-in{from{opacity:0;transform:translateY(4px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
   .lc-chat-input-wrap{position:fixed;z-index:1000000;pointer-events:auto}
   .lc-chat-input{border:none;outline:none;padding:4px 10px;border-radius:10px;font:500 13px/1.5 system-ui;color:#fff;min-width:60px;max-width:220px;box-shadow:0 2px 12px rgba(0,0,0,.15);caret-color:#fff}
@@ -397,7 +398,34 @@ LiveCursorsEngine.prototype._handleKeyDown = function (e) {
   }
 };
 
-LiveCursorsEngine.prototype._handleVisibilityChange = function () { this._tabHidden = document.hidden; };
+LiveCursorsEngine.prototype._handleVisibilityChange = function () {
+  var wasHidden = this._tabHidden;
+  this._tabHidden = document.hidden;
+  var self = this;
+
+  if (document.hidden && !wasHidden) {
+    // Tab just became hidden — pause all bubble timers, record remaining time
+    this._users.forEach(function (u) {
+      u._chatBubbles.forEach(function (entry) {
+        if (entry.timer) {
+          clearTimeout(entry.timer);
+          entry.timer = null;
+          var elapsed = Date.now() - entry.startedAt;
+          entry.remaining = Math.max(0, entry.remaining - elapsed);
+        }
+      });
+    });
+  } else if (!document.hidden && wasHidden) {
+    // Tab just became visible — resume all paused bubble timers
+    this._users.forEach(function (u) {
+      u._chatBubbles.forEach(function (entry) {
+        if (!entry.timer && !entry.fadeTimer && entry.remaining > 0) {
+          self._startBubbleTimer(u, entry);
+        }
+      });
+    });
+  }
+};
 
 /* ── coordinate helpers ───────────────────────────────────────────────── */
 
@@ -523,7 +551,7 @@ LiveCursorsEngine.prototype._addUser = function (u) {
     username: u.username, avatar: u.avatar, url: u.url, color: c, el: el, edgeEl: null,
     xRatio: u.xRatio || -1, yOffset: u.yOffset || -1, inputType: u.inputType || 'mouse',
     containerHeight: u.containerHeight || 0, _snapEl: null, _snapBadge: null, _snapTarget: null,
-    _chatBubble: null, _chatTimer: null,
+    _chatStack: null, _chatBubbles: [],
   });
   // Flash chat hint on first user join
   if (!this._hintShown && this._users.size >= 1) {
@@ -538,7 +566,7 @@ LiveCursorsEngine.prototype._removeUser = function (id) {
   if (u.el) { u.el.classList.add('leaving'); setTimeout(function () { u.el.remove(); }, 300); }
   if (u.edgeEl) u.edgeEl.remove();
   this._unhighlightSnap(u);
-  if (u._chatTimer) clearTimeout(u._chatTimer);
+  u._chatBubbles.forEach(function (b) { if (b.timer) clearTimeout(b.timer); });
   if (this._touchFadeTimers[id]) { clearTimeout(this._touchFadeTimers[id]); delete this._touchFadeTimers[id]; }
   this._users.delete(id);
 };
@@ -670,19 +698,64 @@ LiveCursorsEngine.prototype._updatePresence = function () {
 
 /* ── cursor chat ──────────────────────────────────────────────────────── */
 
+var CHAT_DISPLAY_MS = 8000;  // how long each bubble stays visible
+var CHAT_FADE_MS = 500;      // fade-out transition duration
+var CHAT_MAX_BUBBLES = 5;    // max stacked bubbles per user
+
 LiveCursorsEngine.prototype._showChatBubble = function (userId, text) {
   if (!this.showChat) return;
   var u = this._users.get(userId); if (!u || !u.el || !this.showCursors) return;
-  if (u._chatTimer) { clearTimeout(u._chatTimer); u._chatTimer = null; }
-  if (u._chatBubble) { u._chatBubble.remove(); u._chatBubble = null; }
-  var bubble = document.createElement('div');
-  bubble.className = 'lc-chat-bubble'; bubble.style.background = u.color; bubble.textContent = text;
-  u.el.appendChild(bubble); u._chatBubble = bubble;
-  u._chatTimer = setTimeout(function () {
-    bubble.classList.add('fade');
-    setTimeout(function () { if (u._chatBubble === bubble) { bubble.remove(); u._chatBubble = null; } }, 500);
-    u._chatTimer = null;
-  }, 4000);
+  var self = this;
+
+  // Lazily create the stack container
+  if (!u._chatStack) {
+    u._chatStack = document.createElement('div');
+    u._chatStack.className = 'lc-chat-stack';
+    u.el.appendChild(u._chatStack);
+  }
+
+  // Cap visible bubbles — remove oldest if at limit
+  while (u._chatBubbles.length >= CHAT_MAX_BUBBLES) {
+    var oldest = u._chatBubbles.shift();
+    if (oldest.timer) clearTimeout(oldest.timer);
+    if (oldest.fadeTimer) clearTimeout(oldest.fadeTimer);
+    if (oldest.el.parentNode) oldest.el.remove();
+  }
+
+  // Create new bubble element
+  var bubbleEl = document.createElement('div');
+  bubbleEl.className = 'lc-chat-bubble';
+  bubbleEl.style.background = u.color;
+  bubbleEl.textContent = text;
+  u._chatStack.appendChild(bubbleEl);
+
+  // Bubble entry object tracks its own timers and remaining time
+  var entry = { el: bubbleEl, timer: null, fadeTimer: null, remaining: CHAT_DISPLAY_MS, startedAt: 0 };
+  u._chatBubbles.push(entry);
+
+  // Start the fade-out countdown (paused when tab is hidden)
+  self._startBubbleTimer(u, entry);
+};
+
+/** Start or resume a bubble's dismiss timer. */
+LiveCursorsEngine.prototype._startBubbleTimer = function (u, entry) {
+  if (this._tabHidden) return; // will be resumed by _handleVisibilityChange
+  var self = this;
+  entry.startedAt = Date.now();
+  entry.timer = setTimeout(function () {
+    entry.timer = null;
+    entry.el.classList.add('fade');
+    entry.fadeTimer = setTimeout(function () {
+      entry.fadeTimer = null;
+      if (entry.el.parentNode) entry.el.remove();
+      var idx = u._chatBubbles.indexOf(entry);
+      if (idx !== -1) u._chatBubbles.splice(idx, 1);
+      // Remove empty stack container
+      if (u._chatBubbles.length === 0 && u._chatStack && u._chatStack.parentNode) {
+        u._chatStack.remove(); u._chatStack = null;
+      }
+    }, CHAT_FADE_MS);
+  }, entry.remaining);
 };
 
 LiveCursorsEngine.prototype._openChatInput = function () {
@@ -715,7 +788,9 @@ LiveCursorsEngine.prototype._openChatInput = function () {
 
 LiveCursorsEngine.prototype._closeChatInput = function () {
   if (!this._chatInputEl) return;
-  this._chatInputEl.remove(); this._chatInputEl = null;
+  var el = this._chatInputEl;
+  this._chatInputEl = null;
+  if (el.parentNode) el.remove();
 };
 
 LiveCursorsEngine.prototype._flashChatHint = function () {
