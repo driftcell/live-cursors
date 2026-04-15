@@ -57,7 +57,7 @@ const CSS = `
 .lc-cursor.touch .lc-chat-stack{left:-4px;bottom:auto;top:100%;margin-bottom:0;margin-top:4px}
 .lc-chat-bubble{padding:5px 10px;border-radius:10px;font:500 12px/1.5 system-ui;color:#fff;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word;pointer-events:none;opacity:1;transition:opacity .5s;animation:lc-chat-in .2s ease;max-width:100%}
 .lc-chat-bubble.fade{opacity:0}
-@keyframes lc-chat-in{from{opacity:0;transform:translateY(4px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes lc-chat-in{from{opacity:0;transform:translateY(6px) scale(.92)}to{opacity:1;transform:translateY(0) scale(1)}}
 .lc-chat-input-wrap{position:fixed;left:0;top:0;z-index:1000000;pointer-events:auto;transform:translate3d(0,0,0);will-change:transform}
 .lc-chat-input{border:1.5px solid rgba(255,255,255,.25);outline:none;padding:6px 14px;border-radius:12px;font:500 13px/1.5 system-ui;color:#fff;min-width:160px;max-width:240px;box-shadow:0 2px 16px rgba(0,0,0,.18);caret-color:#fff;transition:border-color .2s,box-shadow .2s}
 .lc-chat-input:focus{border-color:rgba(255,255,255,.5);box-shadow:0 2px 20px rgba(0,0,0,.22)}
