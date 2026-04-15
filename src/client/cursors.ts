@@ -95,6 +95,11 @@ export class CursorLayer {
     if (isTouch) u.el.classList.add('touch'); else u.el.classList.remove('touch');
   }
 
+  setIdle(u: RemoteUser, idle: boolean): void {
+    if (!u.el) return;
+    if (idle) u.el.classList.add('idle'); else u.el.classList.remove('idle');
+  }
+
   scheduleTouchFade(u: RemoteUser): void {
     if (u.touchFadeTimer != null) clearTimeout(u.touchFadeTimer);
     u.touchFadeTimer = window.setTimeout(() => this.setActive(u, false), TOUCH_FADE_MS);
@@ -152,6 +157,10 @@ export function makeRemoteUser(u: IncomingUser, el: HTMLElement | null): RemoteU
     chatBubbles: [],
     touchFadeTimer: null,
     typingEl: null,
+    lastSeenTs: Date.now(),
+    selectionEl: null,
+    selectionRects: [],
+    inkStrokes: [],
   };
 }
 
@@ -160,6 +169,7 @@ export function applyIncoming(u: RemoteUser, m: IncomingCursor): void {
   u.yOffset = m.yOffset;
   u.inputType = m.inputType === 'touch' ? 'touch' : 'mouse';
   u.containerHeight = m.containerHeight ?? 0;
+  u.lastSeenTs = Date.now();
 }
 
 export function resolve(container: Element, u: RemoteUser): ResolvedPos {

@@ -88,6 +88,8 @@ export class CursorRoom extends DurableObject<Env> {
   private broadcastTimer: ReturnType<typeof setInterval> | null = null;
   // ── chat history ring buffer ───────────────────────────────────────────
   private chatHistory: ChatEntry[] = [];
+  // ── multi-tab dedup: track session count per logical user id ────────────
+  private sessionsPerUser: Map<string, number> = new Map();
   // ── D1 write batching ─────────────────────────────────────────────────
   private visitBuffer = 0;
   private statsFlushTimer: ReturnType<typeof setTimeout> | null = null;
@@ -153,7 +155,7 @@ export class CursorRoom extends DurableObject<Env> {
 
     // Internal stats endpoint (non-WebSocket)
     if (url.pathname.endsWith('/do/stats')) {
-      return new Response(JSON.stringify({ current_online: this.sessions.size }), {
+      return new Response(JSON.stringify({ current_online: this.sessionsPerUser.size }), {
         headers: { 'Content-Type': 'application/json' },
       });
     }
@@ -212,22 +214,31 @@ export class CursorRoom extends DurableObject<Env> {
     this.sessions.set(server, user);
     this.ensureBroadcastLoop();
 
-    doLog('INFO', 'do_join', { username: user.username, id: user.id, room: this.ctx.id.toString(), total: this.sessions.size });
+    // ── multi-tab dedup ────────────────────────────────────────────────────
+    // Only broadcast a `join` (and count toward persisted visits) the FIRST
+    // time a given user id appears. Secondary tabs are silently attached.
+    const existingCount = this.sessionsPerUser.get(user.id) ?? 0;
+    this.sessionsPerUser.set(user.id, existingCount + 1);
+    const isPrimary = existingCount === 0;
+
+    doLog('INFO', 'do_join', { username: user.username, id: user.id, room: this.ctx.id.toString(), total: this.sessions.size, primary: isPrimary });
 
     // Tell the new client about existing users + recent chat history
     server.send(JSON.stringify({ type: 'init', self: user.id, users: currentUsers, chatHistory: this.chatHistory }));
 
-    // Schedule batched D1 write + stats broadcast
-    this.scheduleStatsFlush('join');
+    if (isPrimary) {
+      // Schedule batched D1 write + stats broadcast
+      this.scheduleStatsFlush('join');
 
-    // Tell everyone else about the new user
-    this.broadcast(
-      JSON.stringify({
-        type: 'join',
-        user: { id: user.id, username: user.username, avatar: user.avatar, url: user.url, color: user.color },
-      }),
-      server,
-    );
+      // Tell everyone else about the new user
+      this.broadcast(
+        JSON.stringify({
+          type: 'join',
+          user: { id: user.id, username: user.username, avatar: user.avatar, url: user.url, color: user.color },
+        }),
+        server,
+      );
+    }
 
     server.addEventListener('message', (event) => {
       this.handleMessage(server, event.data as string);
@@ -275,6 +286,45 @@ export class CursorRoom extends DurableObject<Env> {
       if (data.type === 'typing') {
         this.broadcast(
           JSON.stringify({ type: 'typing', id: user.id, typing: !!data.typing }),
+          ws,
+        );
+        return;
+      }
+      if (data.type === 'selection') {
+        const rects = Array.isArray(data.rects) ? data.rects.slice(0, 40) : [];
+        // Validate each rect's shape (cheap).
+        const clean = rects.filter((r: unknown): r is { xRatio: number; wRatio: number; yOffset: number; height: number } =>
+          !!r && typeof r === 'object'
+          && typeof (r as { xRatio?: unknown }).xRatio === 'number'
+          && typeof (r as { wRatio?: unknown }).wRatio === 'number'
+          && typeof (r as { yOffset?: unknown }).yOffset === 'number'
+          && typeof (r as { height?: unknown }).height === 'number',
+        );
+        this.broadcast(JSON.stringify({ type: 'selection', id: user.id, rects: clean }), ws);
+        return;
+      }
+      if (data.type === 'ink') {
+        const pts = Array.isArray(data.pts) ? data.pts : [];
+        const clean: Array<[number, number]> = [];
+        for (const p of pts) {
+          if (Array.isArray(p) && p.length === 2 && typeof p[0] === 'number' && typeof p[1] === 'number') {
+            clean.push([p[0], p[1]]);
+            if (clean.length >= 60) break; // per-message cap, complements client batching
+          }
+        }
+        this.broadcast(
+          JSON.stringify({ type: 'ink', id: user.id, pts: clean, final: !!data.final }),
+          ws,
+        );
+        return;
+      }
+      if (data.type === 'reaction') {
+        const emoji = typeof data.emoji === 'string' ? data.emoji.slice(0, 8) : '';
+        if (!emoji) return;
+        const xr = typeof data.xRatio === 'number' ? data.xRatio : 0;
+        const yo = typeof data.yOffset === 'number' ? data.yOffset : 0;
+        this.broadcast(
+          JSON.stringify({ type: 'reaction', id: user.id, emoji, xRatio: xr, yOffset: yo }),
           ws,
         );
         return;
@@ -335,10 +385,17 @@ export class CursorRoom extends DurableObject<Env> {
     const user = this.sessions.get(ws);
     if (user) {
       this.sessions.delete(ws);
-      doLog('INFO', 'do_leave', { username: user.username, id: user.id, remaining: this.sessions.size });
-      this.broadcast(JSON.stringify({ type: 'leave', id: user.id }));
-      // Schedule batched D1 write + stats broadcast
-      this.scheduleStatsFlush('leave');
+      const remaining = (this.sessionsPerUser.get(user.id) ?? 1) - 1;
+      const lastSession = remaining <= 0;
+      if (lastSession) this.sessionsPerUser.delete(user.id);
+      else this.sessionsPerUser.set(user.id, remaining);
+
+      doLog('INFO', 'do_leave', { username: user.username, id: user.id, remaining: this.sessions.size, last: lastSession });
+
+      if (lastSession) {
+        this.broadcast(JSON.stringify({ type: 'leave', id: user.id }));
+        this.scheduleStatsFlush('leave');
+      }
     }
     try {
       ws.close(1000, 'Connection closed');
@@ -348,7 +405,19 @@ export class CursorRoom extends DurableObject<Env> {
   }
 
   private getCurrentUsers() {
-    return Array.from(this.sessions.values()).map((u) => ({
+    // Dedupe by user id so a user with multiple tabs appears once.
+    const seen = new Set<string>();
+    const out: Array<ReturnType<CursorRoom['snapshotUser']>> = [];
+    for (const u of this.sessions.values()) {
+      if (seen.has(u.id)) continue;
+      seen.add(u.id);
+      out.push(this.snapshotUser(u));
+    }
+    return out;
+  }
+
+  private snapshotUser(u: UserInfo) {
+    return {
       id: u.id,
       username: u.username,
       avatar: u.avatar,
@@ -359,7 +428,7 @@ export class CursorRoom extends DurableObject<Env> {
       inputType: u.inputType,
       containerHeight: u.containerHeight,
       snapTarget: u.snapTarget,
-    }));
+    };
   }
 
   // ── batched stats writes ───────────────────────────────────────────────
@@ -387,7 +456,7 @@ export class CursorRoom extends DurableObject<Env> {
         this.statsReady = true;
       }
       if (this.visitBuffer > 0) {
-        await recordVisits(this.env.DB, this.roomName, this.visitBuffer, this.sessions.size);
+        await recordVisits(this.env.DB, this.roomName, this.visitBuffer, this.sessionsPerUser.size);
         this.visitBuffer = 0;
       }
 
@@ -396,7 +465,7 @@ export class CursorRoom extends DurableObject<Env> {
       const statsPayload = {
         site: this.roomName,
         total_visits: persisted?.total_visits ?? 0,
-        current_online: this.sessions.size,
+        current_online: this.sessionsPerUser.size,
         peak_online: persisted?.peak_online ?? 0,
         updated_at: new Date().toISOString(),
       };

@@ -12,6 +12,7 @@ export class PresenceBar {
     private selfUser: SelfUser | null,
     private tokenKey: string,
     parent: HTMLElement,
+    private onFollow: (id: string) => void,
   ) {
     if (!cfg.showPresence) return;
     const root = document.createElement('div');
@@ -34,7 +35,12 @@ export class PresenceBar {
 
   destroy(): void { this.root?.remove(); }
 
-  render(users: Map<string, RemoteUser>, oauthReady: boolean): void {
+  render(
+    users: Map<string, RemoteUser>,
+    oauthReady: boolean,
+    activeIds: Set<string> = new Set(),
+    followingId: string | null = null,
+  ): void {
     if (!this.root || !this.avatarsEl || !this.dividerEl || !this.authEl) return;
 
     this.avatarsEl.replaceChildren();
@@ -43,7 +49,7 @@ export class PresenceBar {
     const visible = filtered.slice(0, 5);
     const overflow = filtered.length - visible.length;
 
-    visible.forEach((u, i) => this.avatarsEl!.appendChild(this.avatarEl(u, i)));
+    visible.forEach((u, i) => this.avatarsEl!.appendChild(this.avatarEl(u, i, activeIds.has(u.id), followingId === u.id)));
     if (overflow > 0) {
       const b = document.createElement('div');
       b.className = 'lc-p-overflow';
@@ -55,26 +61,32 @@ export class PresenceBar {
     this.renderAuth(oauthReady);
   }
 
-  private avatarEl(u: RemoteUser, i: number): HTMLElement {
+  private avatarEl(u: RemoteUser, i: number, active: boolean, following: boolean): HTMLElement {
+    const title = `${u.username}${following ? ' (following — click to stop)' : ' (click to follow)'}`;
+    const classes = ['lc-p-avatar'];
+    if (active) classes.push('lc-active');
+    if (following) classes.push('lc-following');
+
     if (u.avatar) {
       const a = document.createElement('a');
-      a.className = 'lc-p-avatar';
+      a.className = classes.join(' ');
       a.href = u.url || '#';
-      a.target = '_blank';
-      a.title = u.username;
+      a.title = title;
       a.style.zIndex = String(100 - i);
       const img = document.createElement('img');
       img.src = u.avatar;
       img.alt = u.username;
       a.appendChild(img);
+      a.addEventListener('click', (e) => { e.preventDefault(); this.onFollow(u.id); });
       return a;
     }
     const d = document.createElement('div');
-    d.className = 'lc-p-avatar';
+    d.className = classes.join(' ');
     d.style.backgroundColor = u.color;
     d.style.zIndex = String(100 - i);
-    d.title = u.username;
+    d.title = title;
     d.textContent = u.username[0];
+    d.addEventListener('click', () => this.onFollow(u.id));
     return d;
   }
 

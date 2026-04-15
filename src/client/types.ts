@@ -37,6 +37,34 @@ export interface RemoteUser {
   chatBubbles: ChatBubble[];
   touchFadeTimer: number | null;
   typingEl: HTMLElement | null;
+
+  // activity tracking (idle fade, active halo)
+  lastSeenTs: number;
+
+  // text selection overlay
+  selectionEl: HTMLElement | null;
+  selectionRects: SelectionRect[];
+
+  // ink strokes in progress / fading
+  inkStrokes: InkStroke[];
+}
+
+export interface SelectionRect {
+  xRatio: number;   // container-relative
+  wRatio: number;
+  yOffset: number;  // container-relative pixels
+  height: number;
+}
+
+export interface InkStroke {
+  /** svg polyline element inside the ink overlay */
+  el: SVGPolylineElement;
+  /** container-relative points [[xRatio, yOffset], ...] */
+  pts: Array<[number, number]>;
+  /** active = receiving more points; finalized = no more points coming */
+  finalized: boolean;
+  /** timer that removes the stroke after fade */
+  removeTimer: number | null;
 }
 
 export interface ChatBubble {
@@ -66,6 +94,9 @@ export type WSMessage =
   | { type: 'cursor_batch'; cursors: IncomingCursor[] }
   | { type: 'chat'; id: string; text: string }
   | { type: 'typing'; id: string; typing: boolean }
+  | { type: 'selection'; id: string; rects: SelectionRect[] }
+  | { type: 'ink'; id: string; pts: Array<[number, number]>; final?: boolean }
+  | { type: 'reaction'; id: string; emoji: string; xRatio: number; yOffset: number }
   | { type: 'ping' }
   | { type: 'stats'; [k: string]: unknown }
   | { type: 'error'; [k: string]: unknown };

@@ -6,6 +6,7 @@
 const CSS = `
 .lc-cursor{position:fixed;left:0;top:0;pointer-events:none;z-index:999999;opacity:0;transform:translate3d(-9999px,-9999px,0);transition:transform 80ms linear,opacity .3s;will-change:transform,opacity}
 .lc-cursor.active{opacity:1}
+.lc-cursor.active.idle{opacity:.35}
 .lc-cursor.leaving{opacity:0;transition:opacity .3s}
 .lc-cursor.no-anim{transition:opacity .3s}
 .lc-cursor.touch .lc-arrow{display:none}
@@ -32,6 +33,9 @@ const CSS = `
 .lc-p-avatar{width:32px;height:32px;border-radius:50%;border:2px solid #fff;margin-left:-8px;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font:600 13px/1 system-ui;color:#fff;cursor:pointer;text-decoration:none;transition:transform .2s;position:relative;box-shadow:0 1px 4px rgba(0,0,0,.1)}
 .lc-p-avatar:first-child{margin-left:0}
 .lc-presence-avatars:hover .lc-p-avatar:not(:first-child){transform:translateX(12px)}
+.lc-p-avatar.lc-active::after{content:'';position:absolute;inset:-3px;border-radius:50%;border:2px solid #6366f1;opacity:.55;animation:lc-halo 1.6s ease-in-out infinite;pointer-events:none}
+@keyframes lc-halo{0%,100%{transform:scale(1);opacity:.55}50%{transform:scale(1.15);opacity:.12}}
+.lc-p-avatar.lc-following{outline:2px solid #6366f1;outline-offset:2px}
 .lc-p-avatar:hover{transform:scale(1.12) translateX(0);z-index:10!important}
 .lc-presence-avatars:hover .lc-p-avatar:hover{transform:scale(1.12) translateX(12px)}
 .lc-presence-avatars:hover .lc-p-avatar:first-child:hover{transform:scale(1.12)}
@@ -85,6 +89,23 @@ const CSS = `
 .lc-typing-dot:nth-child(2){animation-delay:.15s}
 .lc-typing-dot:nth-child(3){animation-delay:.3s}
 @keyframes lc-typing-bounce{0%,100%{transform:translateY(0);opacity:.4}50%{transform:translateY(-4px);opacity:1}}
+
+/* ink + selection — single viewport-spanning svg pinned under cursors */
+.lc-overlay-svg{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:999996;overflow:visible}
+.lc-ink-path{fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:2.5;opacity:.85;transition:opacity .6s}
+.lc-ink-path.lc-fading{opacity:0}
+.lc-selection-rect{fill-opacity:.22;stroke-width:1;stroke-opacity:.55}
+
+/* reactions — short-lived floating emoji */
+.lc-reaction{position:fixed;left:0;top:0;z-index:999998;pointer-events:none;font-size:26px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.25));will-change:transform,opacity;animation:lc-react 1400ms cubic-bezier(.2,.7,.3,1) forwards}
+@keyframes lc-react{0%{transform:translate3d(var(--x),var(--y),0) scale(.3);opacity:0}15%{transform:translate3d(var(--x),calc(var(--y) - 8px),0) scale(1.28);opacity:1}100%{transform:translate3d(var(--x),calc(var(--y) - 90px),0) scale(.85);opacity:0}}
+
+/* follow-mode banner */
+.lc-follow-banner{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:1000000;display:flex;align-items:center;gap:8px;padding:6px 14px 6px 6px;border-radius:999px;background:rgba(99,102,241,.96);color:#fff;font:600 12px/1 system-ui;box-shadow:0 4px 14px rgba(99,102,241,.25);cursor:pointer;transition:opacity .2s,transform .2s}
+.lc-follow-banner:hover{opacity:.9;transform:translateX(-50%) translateY(1px)}
+.lc-follow-banner .lc-fb-av{width:22px;height:22px;border-radius:50%;overflow:hidden;background:#fff;display:flex;align-items:center;justify-content:center;color:#6366f1;font:700 11px/1 system-ui;flex-shrink:0}
+.lc-follow-banner .lc-fb-av img{width:100%;height:100%;object-fit:cover}
+.lc-follow-banner .lc-fb-close{opacity:.7;font-size:14px;margin-left:2px;line-height:1}
 `;
 
 let injected = false;
