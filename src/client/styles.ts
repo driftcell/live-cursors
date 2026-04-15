@@ -53,7 +53,7 @@ const CSS = `
 .lc-snap-dot{width:16px;height:16px;border-radius:50%;border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center;color:#fff;font:bold 8px/1 system-ui}
 @keyframes lc-snap-in{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
 
-.lc-chat-stack{position:absolute;left:22px;bottom:100%;margin-bottom:4px;display:flex;flex-direction:column;align-items:flex-start;gap:3px;pointer-events:none;max-width:220px}
+.lc-chat-stack{position:absolute;left:22px;bottom:100%;margin-bottom:4px;display:flex;flex-direction:column;align-items:flex-start;gap:3px;pointer-events:none;width:220px}
 .lc-cursor.touch .lc-chat-stack{left:-4px;bottom:auto;top:100%;margin-bottom:0;margin-top:4px}
 .lc-chat-bubble{padding:5px 10px;border-radius:10px;font:500 12px/1.5 system-ui;color:#fff;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word;pointer-events:none;opacity:1;transition:opacity .5s;animation:lc-chat-in .2s ease;max-width:100%}
 .lc-chat-bubble.fade{opacity:0}
