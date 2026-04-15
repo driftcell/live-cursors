@@ -80,7 +80,7 @@ const CSS = `
 
 .lc-typing{position:absolute;left:22px;top:-4px;pointer-events:none;display:flex;gap:3px;padding:4px 8px;border-radius:10px;animation:lc-chat-in .2s ease}
 .lc-cursor.touch .lc-typing{left:-4px;top:auto;bottom:-24px}
-.lc-typing-dot{width:5px;height:5px;border-radius:50%;background:#fff;opacity:.7;animation:lc-typing-bounce .6s ease-in-out infinite}
+.lc-typing-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.9);animation:lc-typing-bounce .6s ease-in-out infinite}
 .lc-typing-dot:nth-child(2){animation-delay:.15s}
 .lc-typing-dot:nth-child(3){animation-delay:.3s}
 @keyframes lc-typing-bounce{0%,100%{transform:translateY(0);opacity:.4}50%{transform:translateY(-4px);opacity:1}}
