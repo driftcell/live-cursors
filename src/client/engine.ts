@@ -170,9 +170,12 @@ export class LiveCursorsEngine {
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || t?.isContentEditable) return;
     if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
       e.preventDefault();
-      this.chat.openInput(this.selfMouseX, this.selfMouseY, this.selfColor, (text) => {
-        this.conn.send({ type: 'chat', text });
-      });
+      this.chat.openInput(
+        this.selfMouseX, this.selfMouseY, this.selfColor,
+        (text) => { this.conn.send({ type: 'chat', text }); },
+        () => { this.conn.send({ type: 'typing', typing: true }); },
+        () => { this.conn.send({ type: 'typing', typing: false }); },
+      );
     }
   }
 
@@ -252,7 +255,12 @@ export class LiveCursorsEngine {
         break;
       case 'chat': {
         const u = this.users.get(m.id);
-        if (u) this.chat.show(u, m.text, this.tabHidden);
+        if (u) { this.chat.setTyping(u, false); this.chat.show(u, m.text, this.tabHidden); }
+        break;
+      }
+      case 'typing': {
+        const u = this.users.get(m.id);
+        if (u) this.chat.setTyping(u, m.typing);
         break;
       }
       case 'error': emit('lc:error', m); break;

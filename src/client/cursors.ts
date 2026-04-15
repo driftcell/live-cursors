@@ -151,6 +151,7 @@ export function makeRemoteUser(u: IncomingUser, el: HTMLElement | null): RemoteU
     chatStack: null,
     chatBubbles: [],
     touchFadeTimer: null,
+    typingEl: null,
   };
 }
 

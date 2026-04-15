@@ -180,8 +180,30 @@ export class ChatLayer {
     if (b.fadeTimer != null) clearTimeout(b.fadeTimer);
   }
 
+  /** Show or hide the typing indicator (bouncing dots) on a remote user's cursor. */
+  setTyping(u: RemoteUser, typing: boolean): void {
+    if (!this.enabled || !u.el) return;
+    if (typing) {
+      if (u.typingEl) return;
+      const el = document.createElement('div');
+      el.className = 'lc-typing';
+      el.style.background = u.color;
+      for (let i = 0; i < 3; i++) {
+        const d = document.createElement('div');
+        d.className = 'lc-typing-dot';
+        el.appendChild(d);
+      }
+      u.el.appendChild(el);
+      u.typingEl = el;
+    } else {
+      if (!u.typingEl) return;
+      u.typingEl.remove();
+      u.typingEl = null;
+    }
+  }
+
   /** Open an inline input near the local cursor. */
-  openInput(x: number, y: number, color: string, onSubmit: (text: string) => void): void {
+  openInput(x: number, y: number, color: string, onSubmit: (text: string) => void, onOpen?: () => void, onClose?: () => void): void {
     if (!this.enabled || this.inputEl) return;
     const wrap = document.createElement('div');
     wrap.className = 'lc-chat-input-wrap';
@@ -197,7 +219,8 @@ export class ChatLayer {
     document.body.appendChild(wrap);
     this.inputEl = wrap;
 
-    const close = () => this.closeInput();
+    const close = () => { onClose?.(); this.closeInput(); };
+    onOpen?.();
     input.addEventListener('mousemove', (e) => e.stopPropagation());
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {

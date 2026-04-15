@@ -36,6 +36,7 @@ export interface RemoteUser {
   chatStack: HTMLElement | null;
   chatBubbles: ChatBubble[];
   touchFadeTimer: number | null;
+  typingEl: HTMLElement | null;
 }
 
 export interface ChatBubble {
@@ -64,6 +65,7 @@ export type WSMessage =
   | { type: 'cursor'; id: string; xRatio: number; yOffset: number; inputType?: string; containerHeight?: number; snapTarget?: string | null }
   | { type: 'cursor_batch'; cursors: IncomingCursor[] }
   | { type: 'chat'; id: string; text: string }
+  | { type: 'typing'; id: string; typing: boolean }
   | { type: 'ping' }
   | { type: 'stats'; [k: string]: unknown }
   | { type: 'error'; [k: string]: unknown };
