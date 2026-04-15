@@ -41,6 +41,7 @@ const RATE_LIMIT_MAX = 30;       // max messages per window (50ms client ≈ 20/
 const MAX_CONNECTIONS_PER_ROOM = 200;
 const MAX_MESSAGE_SIZE = 1024;   // bytes – cursor payloads are ~150 B, leave headroom for deep snap paths
 const MAX_CHAT_LENGTH = 128;     // max characters per chat message
+const CHAT_HISTORY_SIZE = 20;    // ring buffer capacity for recent chat messages
 
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -55,6 +56,15 @@ function sanitizeSnapTarget(raw: unknown): string | null {
 
 function doLog(level: 'INFO' | 'WARN', event: string, data?: Record<string, unknown>) {
   console.log(JSON.stringify({ level, event, ts: new Date().toISOString(), ...data }));
+}
+
+interface ChatEntry {
+  id: string;        // sender user id
+  username: string;
+  avatar: string;
+  color: string;
+  text: string;
+  ts: number;        // Date.now() timestamp
 }
 
 interface CursorUpdate {
@@ -76,6 +86,8 @@ export class CursorRoom extends DurableObject<Env> {
   private roomName = '/';
   private pendingUpdates: Map<string, CursorUpdate> = new Map();
   private broadcastTimer: ReturnType<typeof setInterval> | null = null;
+  // ── chat history ring buffer ───────────────────────────────────────────
+  private chatHistory: ChatEntry[] = [];
   // ── D1 write batching ─────────────────────────────────────────────────
   private visitBuffer = 0;
   private statsFlushTimer: ReturnType<typeof setTimeout> | null = null;
@@ -202,8 +214,8 @@ export class CursorRoom extends DurableObject<Env> {
 
     doLog('INFO', 'do_join', { username: user.username, id: user.id, room: this.ctx.id.toString(), total: this.sessions.size });
 
-    // Tell the new client about existing users
-    server.send(JSON.stringify({ type: 'init', self: user.id, users: currentUsers }));
+    // Tell the new client about existing users + recent chat history
+    server.send(JSON.stringify({ type: 'init', self: user.id, users: currentUsers, chatHistory: this.chatHistory }));
 
     // Schedule batched D1 write + stats broadcast
     this.scheduleStatsFlush('join');
@@ -263,6 +275,18 @@ export class CursorRoom extends DurableObject<Env> {
       if (data.type === 'chat') {
         const text = typeof data.text === 'string' ? data.text.slice(0, MAX_CHAT_LENGTH).trim() : '';
         if (!text) return;
+        // Push into ring buffer
+        this.chatHistory.push({
+          id: user.id,
+          username: user.username,
+          avatar: user.avatar,
+          color: user.color,
+          text,
+          ts: now,
+        });
+        if (this.chatHistory.length > CHAT_HISTORY_SIZE) {
+          this.chatHistory.shift();
+        }
         this.broadcast(
           JSON.stringify({
             type: 'chat',

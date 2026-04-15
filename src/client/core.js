@@ -64,6 +64,18 @@ var LC_STYLES = `
   .lc-chat-input::placeholder{color:rgba(255,255,255,.6)}
   .lc-chat-hint{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:999997;padding:6px 14px;border-radius:8px;background:rgba(0,0,0,.7);color:#fff;font:500 12px/1 system-ui;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
   .lc-chat-hint.visible{opacity:1}
+  .lc-history-panel{position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:999997;max-width:360px;width:90vw;max-height:240px;overflow-y:auto;background:rgba(30,30,46,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;box-shadow:0 4px 24px rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.08);animation:lc-hist-in .25s ease;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent}
+  .lc-history-panel::-webkit-scrollbar{width:4px}
+  .lc-history-panel::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px}
+  .lc-history-panel.fade-out{opacity:0;transition:opacity .4s}
+  @keyframes lc-hist-in{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+  .lc-hist-msg{display:flex;align-items:flex-start;gap:6px}
+  .lc-hist-av{width:18px;height:18px;border-radius:50%;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font:bold 9px/1 system-ui;color:#fff}
+  .lc-hist-av img{width:100%;height:100%;object-fit:cover}
+  .lc-hist-body{display:flex;flex-direction:column;gap:1px;min-width:0}
+  .lc-hist-name{font:600 10px/1 system-ui;opacity:.6}
+  .lc-hist-text{font:400 12px/1.4 system-ui;color:#e0e0e0;word-break:break-word}
+  .lc-hist-time{font:400 10px/1 system-ui;color:rgba(255,255,255,.3);margin-left:auto;flex-shrink:0;align-self:center}
 `;
 
 function injectStyles() {
@@ -91,7 +103,7 @@ function isSafeImageUrl(url) {
   try { var u = new URL(url); return u.protocol === 'https:' || u.protocol === 'http:'; } catch (e) { return false; }
 }
 
-var LC_OWN_CLS = ['lc-cursor', 'lc-edge', 'lc-presence', 'lc-snap-line', 'lc-snap-badge', 'lc-chat-input-wrap', 'lc-chat-hint'];
+var LC_OWN_CLS = ['lc-cursor', 'lc-edge', 'lc-presence', 'lc-snap-line', 'lc-snap-badge', 'lc-chat-input-wrap', 'lc-chat-hint', 'lc-history-panel'];
 function isInjected(el) {
   if (!el || !el.nodeType) return false;
   var cl = el.classList;
@@ -242,6 +254,8 @@ export function LiveCursorsEngine(cfg) {
   this._hintShown = false;
   this._hintTimer = null;
   this._active = false;
+  this._historyPanelEl = null;
+  this._historyDismissTimer = null;
 
   // DOM refs
   this._cursorsDiv = null;
@@ -291,6 +305,8 @@ LiveCursorsEngine.prototype.destroy = function () {
   if (this._presenceDiv && this._presenceDiv.parentNode) this._presenceDiv.remove();
   if (this._chatHint && this._chatHint.parentNode) this._chatHint.remove();
   if (this._chatInputEl) { this._chatInputEl.remove(); this._chatInputEl = null; }
+  if (this._historyPanelEl) { this._historyPanelEl.remove(); this._historyPanelEl = null; }
+  if (this._historyDismissTimer) { clearTimeout(this._historyDismissTimer); this._historyDismissTimer = null; }
   // Clear timers
   if (this._hintTimer) { clearTimeout(this._hintTimer); this._hintTimer = null; }
   Object.keys(this._touchFadeTimers).forEach(function (k) { clearTimeout(this._touchFadeTimers[k]); }.bind(this));
@@ -518,6 +534,10 @@ LiveCursorsEngine.prototype._handle = function (m) {
     m.users.forEach(function (u) { if (u.id !== self._selfId) self._addUser(u); });
     if (this._selfId) this._selfColor = hashColor(this._selfId);
     this._updatePresence();
+    // Show chat history panel if there are recent messages
+    if (m.chatHistory && m.chatHistory.length > 0 && this.showChat) {
+      this._showChatHistory(m.chatHistory);
+    }
   }
   else if (m.type === 'join') { this._addUser(m.user); this._updatePresence(); }
   else if (m.type === 'cursor') { this._moveCursor(m); }
@@ -799,6 +819,70 @@ LiveCursorsEngine.prototype._flashChatHint = function () {
   if (this._hintTimer) { clearTimeout(this._hintTimer); this._hintTimer = null; }
   this._chatHint.classList.add('visible');
   this._hintTimer = setTimeout(function () { self._chatHint.classList.remove('visible'); self._hintTimer = null; }, 3000);
+};
+
+/* ── chat history panel ───────────────────────────────────────────────── */
+
+var HISTORY_DISMISS_MS = 10000; // auto-dismiss history panel after 10s
+
+/** Render a floating panel showing recent chat messages from before the user joined. */
+LiveCursorsEngine.prototype._showChatHistory = function (entries) {
+  // Remove any existing panel
+  if (this._historyPanelEl) { this._historyPanelEl.remove(); this._historyPanelEl = null; }
+  if (this._historyDismissTimer) { clearTimeout(this._historyDismissTimer); this._historyDismissTimer = null; }
+
+  var now = Date.now();
+  var self = this;
+  var panel = document.createElement('div');
+  panel.className = 'lc-history-panel';
+
+  entries.forEach(function (entry) {
+    var row = document.createElement('div'); row.className = 'lc-hist-msg';
+
+    // Avatar
+    var av = document.createElement('div'); av.className = 'lc-hist-av';
+    if (isSafeImageUrl(entry.avatar)) {
+      var img = document.createElement('img'); img.src = entry.avatar; img.alt = ''; av.appendChild(img);
+    } else {
+      av.style.background = entry.color || '#6366f1';
+      av.textContent = (entry.username || '?')[0];
+    }
+    row.appendChild(av);
+
+    // Body (name + text)
+    var body = document.createElement('div'); body.className = 'lc-hist-body';
+    var name = document.createElement('div'); name.className = 'lc-hist-name'; name.style.color = entry.color || '#6366f1'; name.textContent = entry.username || 'Anonymous';
+    var text = document.createElement('div'); text.className = 'lc-hist-text'; text.textContent = entry.text;
+    body.appendChild(name); body.appendChild(text);
+    row.appendChild(body);
+
+    // Relative time
+    var age = now - (entry.ts || now);
+    var timeStr;
+    if (age < 60000) timeStr = 'just now';
+    else if (age < 3600000) timeStr = Math.floor(age / 60000) + 'm ago';
+    else timeStr = Math.floor(age / 3600000) + 'h ago';
+    var ts = document.createElement('div'); ts.className = 'lc-hist-time'; ts.textContent = timeStr;
+    row.appendChild(ts);
+
+    panel.appendChild(row);
+  });
+
+  document.body.appendChild(panel);
+  this._historyPanelEl = panel;
+
+  // Scroll to bottom
+  panel.scrollTop = panel.scrollHeight;
+
+  // Auto-dismiss with fade
+  this._historyDismissTimer = setTimeout(function () {
+    self._historyDismissTimer = null;
+    panel.classList.add('fade-out');
+    setTimeout(function () {
+      if (panel.parentNode) panel.remove();
+      if (self._historyPanelEl === panel) self._historyPanelEl = null;
+    }, 400);
+  }, HISTORY_DISMISS_MS);
 };
 
 /* ── fetch server config ──────────────────────────────────────────────── */
