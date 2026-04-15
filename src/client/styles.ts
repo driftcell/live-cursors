@@ -58,9 +58,9 @@ const CSS = `
 .lc-chat-bubble{padding:5px 10px;border-radius:10px;font:500 12px/1.5 system-ui;color:#fff;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word;pointer-events:none;opacity:1;transition:opacity .5s;animation:lc-chat-in .2s ease;max-width:100%}
 .lc-chat-bubble.fade{opacity:0}
 @keyframes lc-chat-in{from{opacity:0;transform:translateY(6px) scale(.92)}to{opacity:1;transform:translateY(0) scale(1)}}
-.lc-chat-input-wrap{position:fixed;left:0;top:0;z-index:1000000;pointer-events:auto;transform:translate3d(0,0,0);will-change:transform;animation:lc-input-in .15s ease-out}
-@keyframes lc-input-in{from{opacity:0;transform:translate3d(0,0,0) scale(.9)}to{opacity:1;transform:translate3d(0,0,0) scale(1)}}
-.lc-chat-input{border:1.5px solid rgba(255,255,255,.25);outline:none;padding:6px 14px;border-radius:12px;font:500 13px/1.5 system-ui;color:#fff;min-width:160px;max-width:240px;box-shadow:0 2px 16px rgba(0,0,0,.18);caret-color:#fff;transition:border-color .2s,box-shadow .2s}
+.lc-chat-input-wrap{position:fixed;left:0;top:0;z-index:1000000;pointer-events:auto;transform:translate3d(0,0,0);will-change:transform}
+.lc-chat-input{border:1.5px solid rgba(255,255,255,.25);outline:none;padding:6px 14px;border-radius:12px;font:500 13px/1.5 system-ui;color:#fff;min-width:160px;max-width:240px;box-shadow:0 2px 16px rgba(0,0,0,.18);caret-color:#fff;transition:border-color .2s,box-shadow .2s;animation:lc-input-in .15s ease-out}
+@keyframes lc-input-in{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
 .lc-chat-input:focus{border-color:rgba(255,255,255,.5);box-shadow:0 2px 20px rgba(0,0,0,.22)}
 .lc-chat-input::placeholder{color:rgba(255,255,255,.55)}
 .lc-chat-hint{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:999997;padding:6px 14px;border-radius:8px;background:rgba(0,0,0,.7);color:#fff;font:500 12px/1 system-ui;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
