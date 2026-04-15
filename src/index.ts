@@ -1,21 +1,16 @@
 import { CursorRoom } from './cursor-room';
 import { signJWT, verifyJWT } from './auth';
 import { ensureStatsTable, getStats } from './stats';
+import type { Env } from './types';
 
 export { CursorRoom };
-
-export interface Env {
-  CURSOR_ROOM: DurableObjectNamespace;
-  GITHUB_CLIENT_ID: string;
-  GITHUB_CLIENT_SECRET: string;
-  JWT_SECRET: string;
-  DB: D1Database;
-  TELEMETRY_ENDPOINT: string;
-}
+export type { Env };
 
 function log(level: 'INFO' | 'WARN' | 'ERROR', event: string, data?: Record<string, unknown>) {
   console.log(JSON.stringify({ level, event, ts: new Date().toISOString(), ...data }));
 }
+
+let statsTableReady = false;
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -66,7 +61,10 @@ export default {
     if (url.pathname === '/api/stats') {
       const site = url.searchParams.get('site') || '/';
       try {
-        await ensureStatsTable(env.DB);
+        if (!statsTableReady) {
+          await ensureStatsTable(env.DB);
+          statsTableReady = true;
+        }
         const persisted = await getStats(env.DB, site);
 
         // Get live current_online from the Durable Object
@@ -178,6 +176,11 @@ async function handleOAuthCallback(url: URL, env: Env): Promise<Response> {
     const u = (await userRes.json()) as { id: number; login: string; avatar_url: string; html_url: string };
 
     log('INFO', 'auth_callback_success', { username: u.login });
+
+    if (!env.JWT_SECRET) {
+      log('ERROR', 'auth_callback_no_jwt_secret');
+      return new Response('JWT signing not configured', { status: 503 });
+    }
 
     const jwt = await signJWT(
       { sub: String(u.id), username: u.login, avatar: u.avatar_url, url: u.html_url },

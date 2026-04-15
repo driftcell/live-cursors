@@ -4,11 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "wrangler dev",
+    "build:embed": "esbuild public/embed.js --bundle --minify --outfile=public/embed.min.js --format=iife",
     "deploy": "wrangler deploy",
-    "types": "wrangler types"
+    "types": "wrangler types",
+    "check": "tsc --noEmit"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250327.0",
+    "esbuild": "^0.25.0",
     "typescript": "^5.7.0",
     "wrangler": "^4.0.0"
   }

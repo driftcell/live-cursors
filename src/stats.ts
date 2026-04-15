@@ -30,6 +30,27 @@ export async function ensureStatsTable(db: D1Database): Promise<void> {
     .run();
 }
 
+/** Increment total_visits by `count` and update peak_online. Batched variant. */
+export async function recordVisits(
+  db: D1Database,
+  site: string,
+  count: number,
+  currentOnline: number,
+): Promise<void> {
+  const now = new Date().toISOString();
+  await db
+    .prepare(
+      `INSERT INTO site_stats (site, total_visits, peak_online, updated_at)
+       VALUES (?1, ?2, ?3, ?4)
+       ON CONFLICT(site) DO UPDATE SET
+         total_visits = total_visits + ?2,
+         peak_online  = MAX(peak_online, ?3),
+         updated_at   = ?4`,
+    )
+    .bind(site, count, currentOnline, now)
+    .run();
+}
+
 /** Increment total_visits and update peak_online if currentOnline is higher. */
 export async function recordVisit(
   db: D1Database,

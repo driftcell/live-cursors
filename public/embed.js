@@ -161,6 +161,7 @@
   }
   function isSafeImageUrl(url){if(!url||typeof url!=="string")return false;try{var u=new URL(url);return u.protocol==="https:"||u.protocol==="http:";}catch(e){return false;}}
 
+  const PONG_MSG=JSON.stringify({type:"pong"});
   let ws,selfId,lastSend=0,lastXR=-1,lastYO=-1,lastSnap=null,reconnectDelay=1000;
   const users=new Map();
   const touchFadeTimers={};
@@ -220,8 +221,10 @@
     ws=new WebSocket(wsUrl);
     ws.onopen=function(){reconnectDelay=1000;emitStatus("connected")};
     ws.onmessage=function(e){try{handle(JSON.parse(e.data))}catch(x){}};
-    ws.onclose=function(){
-      ws=null;emitStatus("disconnected");
+    ws.onclose=function(e){
+      ws=null;
+      if(e.code===4503){emitStatus("room_full");reconnectDelay=30000;}
+      else{emitStatus("disconnected");}
       users.forEach(function(u){unhighlightSnap(u);if(u.el)u.el.remove();if(u.edgeEl)u.edgeEl.remove();});
       users.clear();updatePresence();
       Object.keys(touchFadeTimers).forEach(function(k){clearTimeout(touchFadeTimers[k]);});
@@ -232,13 +235,14 @@
   function isAnon(u){return !u.avatar;}
 
   function handle(m){
-    if(m.type==="ping"&&ws&&ws.readyState===1){ws.send(JSON.stringify({type:"pong"}));return;}
+    if(m.type==="ping"&&ws&&ws.readyState===1){ws.send(PONG_MSG);return;}
     if(m.type==="stats"){try{window.dispatchEvent(new CustomEvent("lc:stats",{detail:m}));}catch(e){}return;}
     if(m.type==="init"){selfId=m.self;m.users.forEach(function(u){if(u.id!==selfId)addUser(u)});updatePresence();}
     else if(m.type==="join"){addUser(m.user);updatePresence();}
     else if(m.type==="cursor"){moveCursor(m);}
     else if(m.type==="cursor_batch"){if(m.cursors)m.cursors.forEach(function(c){if(c.id!==selfId){if(!users.has(c.id)&&c.username)addUser(c);moveCursor(c);}});}
     else if(m.type==="leave"){removeUser(m.id);updatePresence();}
+    else if(m.type==="error"){try{window.dispatchEvent(new CustomEvent("lc:error",{detail:m}));}catch(ex){}}
   }
 
   function addUser(u){
@@ -432,6 +436,7 @@
   },{passive:true});
 
   function sendPos(cx,cy,inputType){
+    if(tabHidden)return;
     const now=Date.now();if(now-lastSend<throttleMs)return;
     const pos=getCursorPos(cx,cy);if(!pos)return;
     var snapTarget=null;
@@ -441,6 +446,10 @@
     lastXR=pos.xRatio;lastYO=pos.yOffset;lastSnap=snapTarget;lastSend=now;
     if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:"cursor",xRatio:pos.xRatio,yOffset:pos.yOffset,inputType:inputType,containerHeight:pos.containerHeight,snapTarget:snapTarget}));
   }
+
+  /* ── pause cursor sending when tab is hidden ── */
+  var tabHidden=false;
+  document.addEventListener("visibilitychange",function(){tabHidden=document.hidden;});
 
   function closeWs(){if(ws){ws.close();ws=null;}}
   window.addEventListener("beforeunload",closeWs);

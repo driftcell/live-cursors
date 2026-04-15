@@ -1,14 +1,6 @@
 import { DurableObject } from 'cloudflare:workers';
-import { ensureStatsTable, recordVisit, getStats, pushTelemetry } from './stats';
-
-export interface Env {
-  CURSOR_ROOM: DurableObjectNamespace;
-  GITHUB_CLIENT_ID: string;
-  GITHUB_CLIENT_SECRET: string;
-  JWT_SECRET: string;
-  DB: D1Database;
-  TELEMETRY_ENDPOINT: string;
-}
+import { ensureStatsTable, recordVisits, getStats, pushTelemetry } from './stats';
+import type { Env } from './types';
 
 interface UserInfo {
   id: string;
@@ -38,13 +30,16 @@ const PING_INTERVAL = 20_000;  // send ping every 20s
 const DEAD_THRESHOLD = 45_000; // close if no pong for 45s
 const BROADCAST_INTERVAL = 50; // flush batched cursor updates every 50ms (~20fps)
 
+const PING_MSG = JSON.stringify({ type: 'ping' });
+const STATS_FLUSH_MS = 5_000; // batch D1 writes every 5 seconds
+
 // ── rate limiting ─────────────────────────────────────────────────────────
 const RATE_LIMIT_WINDOW = 1_000; // 1-second sliding window
 const RATE_LIMIT_MAX = 30;       // max messages per window (50ms client ≈ 20/s, leave headroom)
 
 // ── connection & message limits ───────────────────────────────────────────
 const MAX_CONNECTIONS_PER_ROOM = 200;
-const MAX_MESSAGE_SIZE = 512;    // bytes – cursor payloads are ~150 B
+const MAX_MESSAGE_SIZE = 1024;   // bytes – cursor payloads are ~150 B, leave headroom for deep snap paths
 
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -80,6 +75,10 @@ export class CursorRoom extends DurableObject<Env> {
   private roomName = '/';
   private pendingUpdates: Map<string, CursorUpdate> = new Map();
   private broadcastTimer: ReturnType<typeof setInterval> | null = null;
+  // ── D1 write batching ─────────────────────────────────────────────────
+  private visitBuffer = 0;
+  private statsFlushTimer: ReturnType<typeof setTimeout> | null = null;
+  private statsDirty = false;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -131,7 +130,7 @@ export class CursorRoom extends DurableObject<Env> {
         this.handleClose(ws);
         try { ws.close(1001, 'Heartbeat timeout'); } catch { /* already closed */ }
       } else {
-        try { ws.send(JSON.stringify({ type: 'ping' })); } catch { /* dead socket */ }
+        try { ws.send(PING_MSG); } catch { /* dead socket */ }
       }
     });
   }
@@ -156,10 +155,13 @@ export class CursorRoom extends DurableObject<Env> {
     // ── connection limit ──────────────────────────────────────────────────
     if (this.sessions.size >= MAX_CONNECTIONS_PER_ROOM) {
       doLog('WARN', 'do_room_full', { room: this.roomName, limit: MAX_CONNECTIONS_PER_ROOM });
-      return new Response('Room full', {
-        status: 503,
-        headers: { 'Retry-After': '5' },
-      });
+      // Accept the WebSocket so the client receives a typed error + close code
+      const pair = new WebSocketPair();
+      const [client, srv] = Object.values(pair);
+      srv.accept();
+      srv.send(JSON.stringify({ type: 'error', code: 'room_full' }));
+      srv.close(4503, 'Room full');
+      return new Response(null, { status: 101, webSocket: client });
     }
 
     const userInfoHeader = request.headers.get('X-User-Info');
@@ -202,8 +204,8 @@ export class CursorRoom extends DurableObject<Env> {
     // Tell the new client about existing users
     server.send(JSON.stringify({ type: 'init', self: user.id, users: currentUsers }));
 
-    // Record visit in D1 + telemetry
-    this.pushStats('join').catch(() => {});
+    // Schedule batched D1 write + stats broadcast
+    this.scheduleStatsFlush('join');
 
     // Tell everyone else about the new user
     this.broadcast(
@@ -290,8 +292,8 @@ export class CursorRoom extends DurableObject<Env> {
       this.sessions.delete(ws);
       doLog('INFO', 'do_leave', { username: user.username, id: user.id, remaining: this.sessions.size });
       this.broadcast(JSON.stringify({ type: 'leave', id: user.id }));
-      // Push updated stats after leave
-      this.pushStats('leave').catch(() => {});
+      // Schedule batched D1 write + stats broadcast
+      this.scheduleStatsFlush('leave');
     }
     try {
       ws.close(1000, 'Connection closed');
@@ -315,14 +317,33 @@ export class CursorRoom extends DurableObject<Env> {
     }));
   }
 
-  private async pushStats(event: 'join' | 'leave') {
+  // ── batched stats writes ───────────────────────────────────────────────
+  // Instead of hitting D1 on every join/leave, we buffer visit increments
+  // and flush once every STATS_FLUSH_MS. This dramatically reduces D1
+  // write pressure under high-concurrency join storms.
+
+  private scheduleStatsFlush(event: 'join' | 'leave') {
+    if (event === 'join') this.visitBuffer++;
+    this.statsDirty = true;
+    if (!this.statsFlushTimer) {
+      this.statsFlushTimer = setTimeout(() => {
+        this.statsFlushTimer = null;
+        this.flushStats().catch(() => {});
+      }, STATS_FLUSH_MS);
+    }
+  }
+
+  private async flushStats() {
+    if (!this.statsDirty) return;
+    this.statsDirty = false;
     try {
       if (!this.statsReady) {
         await ensureStatsTable(this.env.DB);
         this.statsReady = true;
       }
-      if (event === 'join') {
-        await recordVisit(this.env.DB, this.roomName, this.sessions.size);
+      if (this.visitBuffer > 0) {
+        await recordVisits(this.env.DB, this.roomName, this.visitBuffer, this.sessions.size);
+        this.visitBuffer = 0;
       }
 
       // Fetch persisted stats for broadcast + telemetry
@@ -343,7 +364,7 @@ export class CursorRoom extends DurableObject<Env> {
         await pushTelemetry(this.env.TELEMETRY_ENDPOINT, statsPayload);
       }
     } catch (err) {
-      doLog('WARN', 'stats_error', { event, error: String(err) });
+      doLog('WARN', 'stats_flush_error', { error: String(err) });
     }
   }
 
