@@ -240,7 +240,7 @@ export class LiveCursorsEngine {
         if (this.selfId) this.selfColor = hashColor(this.selfId);
         for (const u of m.users) if (u.id !== this.selfId) this.addUser(u);
         this.presence.render(this.users, this.oauthReady);
-        if (m.chatHistory && m.chatHistory.length > 0) this.chat.showHistory(m.chatHistory);
+        if (m.chatHistory && m.chatHistory.length > 0) this.chat.showHistory(m.chatHistory, this.users, this.tabHidden);
         break;
       }
       case 'join': this.addUser(m.user); this.presence.render(this.users, this.oauthReady); break;

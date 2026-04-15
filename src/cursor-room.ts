@@ -272,6 +272,13 @@ export class CursorRoom extends DurableObject<Env> {
         user.lastPong = now;
         return;
       }
+      if (data.type === 'typing') {
+        this.broadcast(
+          JSON.stringify({ type: 'typing', id: user.id, typing: !!data.typing }),
+          ws,
+        );
+        return;
+      }
       if (data.type === 'chat') {
         const text = typeof data.text === 'string' ? data.text.slice(0, MAX_CHAT_LENGTH).trim() : '';
         if (!text) return;

@@ -1,19 +1,14 @@
 import type { ChatBubble, ChatHistoryEntry, RemoteUser } from './types';
-import { isSafeImageUrl } from './util';
 
 const DISPLAY_MS = 8000;
 const FADE_MS = 500;
 const MAX_BUBBLES = 5;
-const HISTORY_DISMISS_MS = 10000;
-const HISTORY_FADE_MS = 400;
 
 export class ChatLayer {
   private hint: HTMLElement | null = null;
   private hintTimer: number | null = null;
   private inputEl: HTMLElement | null = null;
   private hintShown = false;
-  private historyPanel: HTMLElement | null = null;
-  private historyTimer: number | null = null;
 
   constructor(private enabled: boolean, parent: HTMLElement) {
     if (!this.enabled) return;
@@ -26,83 +21,21 @@ export class ChatLayer {
   destroy(): void {
     if (this.hint) this.hint.remove();
     if (this.inputEl) this.inputEl.remove();
-    if (this.historyPanel) this.historyPanel.remove();
     if (this.hintTimer != null) clearTimeout(this.hintTimer);
-    if (this.historyTimer != null) clearTimeout(this.historyTimer);
     this.hint = null;
     this.inputEl = null;
-    this.historyPanel = null;
   }
 
-  /** Render a one-shot floating panel with chat history pushed by the server on init. */
-  showHistory(entries: ChatHistoryEntry[]): void {
+  /**
+   * Replay chat history as bubbles on the corresponding user cursors.
+   * Each user's messages are shown as normal chat bubbles, grouped by sender.
+   */
+  showHistory(entries: ChatHistoryEntry[], users: Map<string, RemoteUser>, tabHidden: boolean): void {
     if (!this.enabled || entries.length === 0) return;
-    this.dismissHistory(false);
-
-    const panel = document.createElement('div');
-    panel.className = 'lc-history-panel';
-    const now = Date.now();
-    for (const e of entries) panel.appendChild(this.historyRow(e, now));
-    document.body.appendChild(panel);
-    panel.scrollTop = panel.scrollHeight;
-    this.historyPanel = panel;
-
-    this.historyTimer = window.setTimeout(() => {
-      this.historyTimer = null;
-      panel.classList.add('fade-out');
-      setTimeout(() => {
-        if (this.historyPanel === panel) this.historyPanel = null;
-        panel.remove();
-      }, HISTORY_FADE_MS);
-    }, HISTORY_DISMISS_MS);
-  }
-
-  private dismissHistory(animate: boolean): void {
-    if (this.historyTimer != null) { clearTimeout(this.historyTimer); this.historyTimer = null; }
-    if (!this.historyPanel) return;
-    if (animate) this.historyPanel.classList.add('fade-out');
-    else this.historyPanel.remove();
-    this.historyPanel = null;
-  }
-
-  private historyRow(e: ChatHistoryEntry, now: number): HTMLElement {
-    const row = document.createElement('div');
-    row.className = 'lc-hist-msg';
-
-    const av = document.createElement('div');
-    av.className = 'lc-hist-av';
-    if (isSafeImageUrl(e.avatar)) {
-      const img = document.createElement('img');
-      img.src = e.avatar!;
-      img.alt = '';
-      av.appendChild(img);
-    } else {
-      av.style.background = e.color || '#6366f1';
-      av.textContent = (e.username || '?')[0];
+    for (const e of entries) {
+      const u = users.get(e.id);
+      if (u) this.show(u, e.text, tabHidden);
     }
-    row.appendChild(av);
-
-    const body = document.createElement('div');
-    body.className = 'lc-hist-body';
-    const name = document.createElement('div');
-    name.className = 'lc-hist-name';
-    name.style.color = e.color || '#6366f1';
-    name.textContent = e.username || 'Anonymous';
-    const text = document.createElement('div');
-    text.className = 'lc-hist-text';
-    text.textContent = e.text;
-    body.appendChild(name);
-    body.appendChild(text);
-    row.appendChild(body);
-
-    const age = now - (e.ts || now);
-    const ts = document.createElement('div');
-    ts.className = 'lc-hist-time';
-    ts.textContent = age < 60000 ? 'just now'
-      : age < 3600000 ? Math.floor(age / 60000) + 'm ago'
-      : Math.floor(age / 3600000) + 'h ago';
-    row.appendChild(ts);
-    return row;
   }
 
   /** Show a bubble on the user's cursor. */
