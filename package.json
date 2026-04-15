@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "wrangler dev",
     "build:embed": "esbuild public/embed.js --bundle --minify --outfile=public/embed.min.js --format=iife",
+    "build:wc": "esbuild public/embed-wc.js --bundle --minify --outfile=public/embed-wc.min.js --format=iife",
+    "build": "npm run build:embed && npm run build:wc",
     "deploy": "wrangler deploy",
     "types": "wrangler types",
     "check": "tsc --noEmit"

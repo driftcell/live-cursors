@@ -57,6 +57,62 @@ All options are set via `data-*` attributes on the script tag:
 ></script>
 ```
 
+## Web Component
+
+Prefer a declarative HTML element? Use the `<live-cursors>` Web Component instead of (or alongside) the classic script tag:
+
+```html
+<script src="https://live-cursors.driftcell.dev/embed-wc.js"></script>
+
+<live-cursors
+  server="https://live-cursors.driftcell.dev"
+  container="article"
+  presence="#header-slot"
+  throttle="40"
+></live-cursors>
+```
+
+Both approaches can **coexist** on different pages — they share the same backend and are fully independent client instances.
+
+### Web Component Attributes
+
+| Attribute | Default | Description |
+| --- | --- | --- |
+| `server` | Current page origin | Server URL for the live-cursors backend |
+| `room` | Current page path | Room identifier — users in the same room see each other |
+| `container` | `document.documentElement` | CSS selector for the coordinate anchor container |
+| `presence` | *(floating corner)* | CSS selector to mount the presence bar |
+| `show-cursors` | *(present = true)* | Remove attribute or set `"false"` to hide cursors |
+| `show-presence` | *(present = true)* | Remove attribute or set `"false"` to hide presence bar |
+| `show-login` | *(present = true)* | Remove attribute or set `"false"` to hide GitHub sign-in |
+| `show-chat` | *(present = true)* | Remove attribute or set `"false"` to disable cursor chat |
+| `show-snap` | `"false"` | Set to `"true"` to enable element-snap mode |
+| `count-anonymous` | *(present = true)* | Remove attribute or set `"false"` to exclude anonymous users |
+| `telemetry` | `"false"` | Set to `"true"` to enable site analytics |
+| `throttle` | `"50"` | Cursor send throttle in milliseconds |
+
+### Framework examples
+
+**React:**
+```jsx
+function App() {
+  return (
+    <>
+      <live-cursors server="https://live-cursors.driftcell.dev" container="main" />
+      <main>Your content here</main>
+    </>
+  );
+}
+```
+
+**Vue:**
+```vue
+<template>
+  <live-cursors server="https://live-cursors.driftcell.dev" container="main" />
+  <main>Your content here</main>
+</template>
+```
+
 ## Self-Hosting
 
 ### Prerequisites
