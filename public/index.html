@@ -145,6 +145,27 @@ footer a:hover{text-decoration:underline}
 @keyframes shimmer{100%{transform:translateX(100%)}}
 .stat-value.skeleton{display:inline-block;width:64px;height:2.2rem}
 .stat-label.skeleton{display:inline-block;width:84px;height:14px}
+
+/* ── shortcuts section ── */
+.shortcuts{
+  max-width:640px;margin:0 auto 80px;padding:0 24px;text-align:center;
+}
+.shortcuts h2{font-size:1.5rem;font-weight:700;margin-bottom:8px}
+.shortcuts>p{color:var(--muted);margin-bottom:20px;font-size:14px}
+.shortcut-grid{
+  display:grid;grid-template-columns:1fr;gap:10px;text-align:left;
+}
+.shortcut-item{
+  display:flex;align-items:center;gap:12px;padding:10px 16px;
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+}
+.shortcut-item kbd{
+  display:inline-block;padding:3px 8px;border-radius:6px;
+  background:#f0f0f8;border:1px solid #d1d5db;
+  font:600 12px/1.4 'SF Mono',ui-monospace,monospace;color:var(--accent);
+  white-space:nowrap;flex-shrink:0;
+}
+.shortcut-item span{font-size:13px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -183,6 +204,26 @@ footer a:hover{text-decoration:underline}
     <div class="feature-card"><div class="icon">🔐</div><h3>GitHub OAuth</h3><p>Optional sign-in shows your avatar on cursors and the presence bar.</p></div>
     <div class="feature-card"><div class="icon">🌐</div><h3>Zero Cost</h3><p>Built entirely on Cloudflare's free tier — Workers, Durable Objects, no servers to maintain.</p></div>
     <div class="feature-card"><div class="icon">📦</div><h3>Embed SDK</h3><p>One script tag adds live cursors to any page, with rich configuration options.</p></div>
+    <div class="feature-card"><div class="icon">🎨</div><h3>Text Selection</h3><p>Select text and others see your highlights in real-time with color-coded overlays.</p></div>
+    <div class="feature-card"><div class="icon">✏️</div><h3>Doodle</h3><p>Hold Alt and drag to draw ephemeral strokes that everyone sees — fades after 1.5s.</p></div>
+    <div class="feature-card"><div class="icon">👁️</div><h3>Follow Mode</h3><p>Click any presence avatar to auto-scroll and follow their cursor. Esc to stop.</p></div>
+    <div class="feature-card"><div class="icon">🎯</div><h3>Reactions</h3><p>Press 1–6 to throw floating emoji at your cursor position, visible to all.</p></div>
+    <div class="feature-card"><div class="icon">👻</div><h3>Privacy Fade</h3><p>Idle for 30 seconds and your cursor dims to 35% opacity automatically.</p></div>
+    <div class="feature-card"><div class="icon">✨</div><h3>Active Halo</h3><p>Recently active users get a glowing pulse ring on their presence avatar.</p></div>
+  </section>
+
+  <section class="shortcuts" id="shortcuts">
+    <h2>🎮 How to Play</h2>
+    <p>Everything happens in real-time — try these interactions:</p>
+    <div class="shortcut-grid">
+      <div class="shortcut-item"><kbd>/</kbd><span>Cursor chat — type a message bubble</span></div>
+      <div class="shortcut-item"><kbd>Alt + Drag</kbd><span>Doodle on the page</span></div>
+      <div class="shortcut-item"><kbd>1</kbd> – <kbd>6</kbd><span>Throw emoji: ❤️ 👀 🎉 🔥 👍 🫠</span></div>
+      <div class="shortcut-item"><kbd>Click avatar</kbd><span>Follow that user's cursor</span></div>
+      <div class="shortcut-item"><kbd>Esc</kbd><span>Stop following</span></div>
+      <div class="shortcut-item"><kbd>Select text</kbd><span>Others see your selection</span></div>
+      <div class="shortcut-item"><kbd>Idle 30s</kbd><span>Cursor fades out automatically</span></div>
+    </div>
   </section>
 
   <section class="embed-section" id="embed">
@@ -210,6 +251,30 @@ footer a:hover{text-decoration:underline}
         <label class="cfg-item">
           <div><div class="cfg-name">Element Snap</div><div class="cfg-desc">Snap cursor to hovered elements</div></div>
           <div class="toggle"><input type="checkbox" id="cfg-snap"><span class="slider"></span></div>
+        </label>
+        <label class="cfg-item">
+          <div><div class="cfg-name">Selection</div><div class="cfg-desc">Broadcast text selections</div></div>
+          <div class="toggle"><input type="checkbox" id="cfg-selection" checked><span class="slider"></span></div>
+        </label>
+        <label class="cfg-item">
+          <div><div class="cfg-name">Ink / Doodle</div><div class="cfg-desc">Alt+drag doodle overlay</div></div>
+          <div class="toggle"><input type="checkbox" id="cfg-ink" checked><span class="slider"></span></div>
+        </label>
+        <label class="cfg-item">
+          <div><div class="cfg-name">Follow Mode</div><div class="cfg-desc">Click avatar to follow</div></div>
+          <div class="toggle"><input type="checkbox" id="cfg-follow" checked><span class="slider"></span></div>
+        </label>
+        <label class="cfg-item">
+          <div><div class="cfg-name">Reactions</div><div class="cfg-desc">Press 1–6 to throw emoji</div></div>
+          <div class="toggle"><input type="checkbox" id="cfg-reactions" checked><span class="slider"></span></div>
+        </label>
+        <label class="cfg-item">
+          <div><div class="cfg-name">Idle Fade</div><div class="cfg-desc">Dim cursors after 30s idle</div></div>
+          <div class="toggle"><input type="checkbox" id="cfg-idle" checked><span class="slider"></span></div>
+        </label>
+        <label class="cfg-item">
+          <div><div class="cfg-name">Active Halo</div><div class="cfg-desc">Pulse halo on active users</div></div>
+          <div class="toggle"><input type="checkbox" id="cfg-halo" checked><span class="slider"></span></div>
         </label>
         <label class="cfg-item">
           <div><div class="cfg-name">Telemetry</div><div class="cfg-desc">Fetch &amp; show site analytics</div></div>
@@ -259,6 +324,12 @@ footer a:hover{text-decoration:underline}
   data-show-cursors="true"
   data-show-presence="true"
   data-show-snap="false"
+  data-show-selection="true"
+  data-show-ink="true"
+  data-show-follow="true"
+  data-show-reactions="true"
+  data-idle-fade="true"
+  data-active-halo="true"
   data-count-anonymous="true"
   data-telemetry="true"
 ></script>
@@ -276,6 +347,12 @@ footer a:hover{text-decoration:underline}
     { key: "show-login",      el: "cfg-login",     def: true  },
     { key: "show-chat",       el: "cfg-chat",      def: true  },
     { key: "show-snap",       el: "cfg-snap",      def: false },
+    { key: "show-selection",  el: "cfg-selection", def: true  },
+    { key: "show-ink",        el: "cfg-ink",       def: true  },
+    { key: "show-follow",     el: "cfg-follow",    def: true  },
+    { key: "show-reactions",  el: "cfg-reactions", def: true  },
+    { key: "idle-fade",       el: "cfg-idle",      def: true  },
+    { key: "active-halo",     el: "cfg-halo",      def: true  },
     { key: "count-anonymous", el: "cfg-anonymous", def: true  },
     { key: "telemetry",       el: "cfg-telemetry",  def: true  }
   ];

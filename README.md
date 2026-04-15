@@ -14,6 +14,13 @@ Move your cursor around — everyone sees each other in real-time. Scroll-aware,
 - 🔐 **GitHub OAuth** — Optional sign-in shows your avatar on cursors and the presence bar.
 - 🌐 **Zero Cost** — Built entirely on Cloudflare's free tier. No servers to maintain.
 - 📦 **Embed SDK** — One line of code adds live cursors to any page with rich configuration.
+- 🎨 **Text Selection Broadcast** — Select text and others see your highlighted ranges in real-time, with color-coded overlays per user.
+- ✏️ **Alt+Drag Doodle** — Hold Alt and drag to draw ephemeral ink strokes visible to everyone. Strokes fade out after 1.5 seconds.
+- 👁️ **Follow Mode** — Click a presence avatar to auto-scroll and keep that user's cursor centered. Press Escape or manually scroll to exit.
+- 🎯 **Emoji Reactions** — Press keys 1–6 to throw floating emoji (❤️ 👀 🎉 🔥 👍 🫠) at your cursor position, visible to all. 300ms cooldown.
+- 👻 **Privacy Fade** — After 30 seconds of inactivity, remote cursors dim to 35% opacity automatically.
+- ✨ **Active Halo** — Users who moved within the last 1.5 seconds get a glowing pulse ring on their presence avatar.
+- 🔀 **Multi-Tab Dedup** — The server tracks sessions per user ID with reference counting; only the first and last tab trigger join/leave broadcasts.
 
 ## Demo
 
@@ -42,6 +49,12 @@ All options are set via `data-*` attributes on the script tag:
 | `data-show-login` | `"true"` | Set to `"false"` to hide the GitHub sign-in button |
 | `data-show-chat` | `"true"` | Set to `"false"` to disable cursor chat (press `/` to send messages as bubbles on your cursor) |
 | `data-show-snap` | `"false"` | Set to `"true"` to enable element-snap mode — cursors highlight the hovered DOM element instead of showing a free-form pointer |
+| `data-show-selection` | `"true"` | Set to `"false"` to disable broadcasting text selections |
+| `data-show-ink` | `"true"` | Set to `"false"` to disable Alt+drag doodle strokes |
+| `data-show-follow` | `"true"` | Set to `"false"` to disable follow mode (click avatar to follow) |
+| `data-show-reactions` | `"true"` | Set to `"false"` to disable emoji reactions (keys 1–6) |
+| `data-idle-fade` | `"true"` | Set to `"false"` to disable automatic cursor dimming after 30s idle |
+| `data-active-halo` | `"true"` | Set to `"false"` to disable the pulsing halo on active users' presence avatars |
 | `data-count-anonymous` | `"true"` | Set to `"false"` to exclude anonymous (non-OAuth) users from the online count and presence avatars |
 | `data-telemetry` | `"true"` | Set to `"false"` to disable fetching and displaying site analytics (total visits, online count, peak online) |
 | `data-throttle` | `"50"` | Cursor send throttle in milliseconds. Lower = smoother but more bandwidth |
@@ -87,6 +100,12 @@ Both approaches can **coexist** on different pages — they share the same backe
 | `show-login` | *(present = true)* | Remove attribute or set `"false"` to hide GitHub sign-in |
 | `show-chat` | *(present = true)* | Remove attribute or set `"false"` to disable cursor chat |
 | `show-snap` | `"false"` | Set to `"true"` to enable element-snap mode |
+| `show-selection` | *(present = true)* | Remove attribute or set `"false"` to disable text selection broadcast |
+| `show-ink` | *(present = true)* | Remove attribute or set `"false"` to disable doodle strokes |
+| `show-follow` | *(present = true)* | Remove attribute or set `"false"` to disable follow mode |
+| `show-reactions` | *(present = true)* | Remove attribute or set `"false"` to disable emoji reactions |
+| `idle-fade` | *(present = true)* | Remove attribute or set `"false"` to disable idle cursor dimming |
+| `active-halo` | *(present = true)* | Remove attribute or set `"false"` to disable active user halo |
 | `count-anonymous` | *(present = true)* | Remove attribute or set `"false"` to exclude anonymous users |
 | `telemetry` | `"false"` | Set to `"true"` to enable site analytics |
 | `throttle` | `"50"` | Cursor send throttle in milliseconds |

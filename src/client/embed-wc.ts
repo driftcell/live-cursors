@@ -7,7 +7,9 @@ import { LiveCursorsEngine } from './engine';
 const ATTRS = [
   'server','room','container','presence',
   'show-cursors','show-presence','show-login','show-chat',
-  'show-snap','count-anonymous','telemetry','throttle',
+  'show-snap','show-selection','show-ink','show-follow',
+  'show-reactions','idle-fade','active-halo',
+  'count-anonymous','telemetry','throttle',
 ];
 
 class LiveCursorsElement extends HTMLElement {
@@ -32,6 +34,12 @@ class LiveCursorsElement extends HTMLElement {
       showLogin:         this.boolAttr('show-login', true),
       showChat:          this.boolAttr('show-chat', true),
       showSnap:          this.getAttribute('show-snap') === 'true',
+      showSelection:     this.boolAttr('show-selection', true),
+      showInk:           this.boolAttr('show-ink', true),
+      showFollow:        this.boolAttr('show-follow', true),
+      showReactions:     this.boolAttr('show-reactions', true),
+      idleFade:          this.boolAttr('idle-fade', true),
+      activeHalo:        this.boolAttr('active-halo', true),
       countAnonymous:    this.boolAttr('count-anonymous', true),
       telemetryEnabled:  this.getAttribute('telemetry') === 'true',
       throttleMs:        parseInt(this.getAttribute('throttle') || '50', 10) || 50,

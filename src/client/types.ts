@@ -8,6 +8,12 @@ export interface EngineConfig {
   showLogin?: boolean;
   showChat?: boolean;
   showSnap?: boolean;
+  showSelection?: boolean;
+  showInk?: boolean;
+  showFollow?: boolean;
+  showReactions?: boolean;
+  idleFade?: boolean;
+  activeHalo?: boolean;
   countAnonymous?: boolean;
   telemetryEnabled?: boolean;
   throttleMs?: number;

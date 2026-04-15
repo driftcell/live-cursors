@@ -87,6 +87,12 @@ export class LiveCursorsEngine {
       showLogin: cfg.showLogin !== false,
       showChat: cfg.showChat !== false,
       showSnap: cfg.showSnap === true,
+      showSelection: cfg.showSelection !== false,
+      showInk: cfg.showInk !== false,
+      showFollow: cfg.showFollow !== false,
+      showReactions: cfg.showReactions !== false,
+      idleFade: cfg.idleFade !== false,
+      activeHalo: cfg.activeHalo !== false,
       countAnonymous: cfg.countAnonymous !== false,
       telemetryEnabled: cfg.telemetryEnabled === true,
       throttleMs: cfg.throttleMs || 50,
@@ -203,8 +209,8 @@ export class LiveCursorsEngine {
   }
 
   private onMouseDown(e: MouseEvent): void {
-    // Alt+drag → start ink stroke. Skip if user clicks one of our own overlays.
-    if (!e.altKey || e.button !== 0) return;
+    // Alt+drag → start ink stroke. Skip if disabled or user clicks one of our own overlays.
+    if (!this.cfg.showInk || !e.altKey || e.button !== 0) return;
     const target = e.target as Element | null;
     if (target?.closest?.('.lc-presence,.lc-chat-input-wrap,.lc-follow-banner')) return;
     e.preventDefault();
@@ -251,7 +257,7 @@ export class LiveCursorsEngine {
     const tag = t?.tagName;
     const inField = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || t?.isContentEditable === true;
 
-    if (e.key === 'Escape' && this.follow.getTargetId()) {
+    if (e.key === 'Escape' && this.cfg.showFollow && this.follow.getTargetId()) {
       this.follow.stop();
       e.preventDefault();
       return;
@@ -270,13 +276,15 @@ export class LiveCursorsEngine {
         );
         return;
       }
-      const emoji = REACTION_KEYS[e.key];
-      if (emoji) {
-        const pos = clientToContainer(this.container(), this.selfMouseX, this.selfMouseY);
-        if (this.reactions.spawnLocal(emoji, this.selfMouseX, this.selfMouseY)) {
-          this.conn.send({ type: 'reaction', emoji, xRatio: pos.xRatio, yOffset: pos.yOffset });
+      if (this.cfg.showReactions) {
+        const emoji = REACTION_KEYS[e.key];
+        if (emoji) {
+          const pos = clientToContainer(this.container(), this.selfMouseX, this.selfMouseY);
+          if (this.reactions.spawnLocal(emoji, this.selfMouseX, this.selfMouseY)) {
+            this.conn.send({ type: 'reaction', emoji, xRatio: pos.xRatio, yOffset: pos.yOffset });
+          }
+          e.preventDefault();
         }
-        e.preventDefault();
       }
     }
   }
@@ -365,16 +373,19 @@ export class LiveCursorsEngine {
         break;
       }
       case 'selection': {
+        if (!this.cfg.showSelection) break;
         const u = this.users.get(m.id);
         if (u) { this.selection.applyRemote(u, m.rects); u.lastSeenTs = Date.now(); }
         break;
       }
       case 'ink': {
+        if (!this.cfg.showInk) break;
         const u = this.users.get(m.id);
         if (u) { this.ink.applyRemote(u, m.pts, !!m.final); u.lastSeenTs = Date.now(); }
         break;
       }
       case 'reaction': {
+        if (!this.cfg.showReactions) break;
         const u = this.users.get(m.id);
         if (u) { this.reactions.showRemote(m.emoji, m.xRatio, m.yOffset); u.lastSeenTs = Date.now(); }
         break;
@@ -417,7 +428,7 @@ export class LiveCursorsEngine {
   private moveCursor(m: IncomingCursor): void {
     const u = this.users.get(m.id); if (!u) return;
     applyIncoming(u, m);
-    if (this.follow.isFollowing(m.id)) this.follow.tick();
+    if (this.cfg.showFollow && this.follow.isFollowing(m.id)) this.follow.tick();
     if (!this.cfg.showCursors || !u.el) return;
 
     const snapId = this.cfg.showSnap ? sanitizeSnapId(m.snapTarget) : null;
@@ -460,9 +471,9 @@ export class LiveCursorsEngine {
     const now = Date.now();
     let anyStateChanged = false;
     for (const u of this.users.values()) {
-      const idle = now - u.lastSeenTs > IDLE_MS;
+      const idle = this.cfg.idleFade && (now - u.lastSeenTs > IDLE_MS);
       this.cursors.setIdle(u, idle);
-      const nowActive = now - u.lastSeenTs < ACTIVE_MS;
+      const nowActive = this.cfg.activeHalo && (now - u.lastSeenTs < ACTIVE_MS);
       // presence bar re-renders when active-set changes
       if ((u as unknown as { _wasActive?: boolean })._wasActive !== nowActive) {
         (u as unknown as { _wasActive?: boolean })._wasActive = nowActive;
