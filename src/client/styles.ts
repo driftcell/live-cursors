@@ -66,9 +66,9 @@ const CSS = `
 .lc-chat-hint{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:999997;padding:6px 14px;border-radius:8px;background:rgba(0,0,0,.7);color:#fff;font:500 12px/1 system-ui;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
 .lc-chat-hint.visible{opacity:1}
 
-.lc-history-panel{position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:999997;max-width:360px;width:90vw;max-height:240px;overflow-y:auto;background:rgba(30,30,46,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;box-shadow:0 4px 24px rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.08);animation:lc-hist-in .25s ease;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent}
+.lc-history-panel{position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:999997;max-width:360px;width:90vw;max-height:240px;overflow-y:auto;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;box-shadow:0 4px 24px rgba(0,0,0,.08);border:1px solid rgba(0,0,0,.08);animation:lc-hist-in .25s ease;scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.12) transparent}
 .lc-history-panel::-webkit-scrollbar{width:4px}
-.lc-history-panel::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px}
+.lc-history-panel::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:2px}
 .lc-history-panel.fade-out{opacity:0;transition:opacity .4s}
 @keyframes lc-hist-in{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 .lc-hist-msg{display:flex;align-items:flex-start;gap:6px}
@@ -76,8 +76,8 @@ const CSS = `
 .lc-hist-av img{width:100%;height:100%;object-fit:cover}
 .lc-hist-body{display:flex;flex-direction:column;gap:1px;min-width:0}
 .lc-hist-name{font:600 10px/1 system-ui;opacity:.6}
-.lc-hist-text{font:400 12px/1.4 system-ui;color:#e0e0e0;word-break:break-word}
-.lc-hist-time{font:400 10px/1 system-ui;color:rgba(255,255,255,.3);margin-left:auto;flex-shrink:0;align-self:center}
+.lc-hist-text{font:400 12px/1.4 system-ui;color:#374151;word-break:break-word}
+.lc-hist-time{font:400 10px/1 system-ui;color:rgba(0,0,0,.3);margin-left:auto;flex-shrink:0;align-self:center}
 
 .lc-typing{position:absolute;left:22px;top:-4px;pointer-events:none;display:flex;gap:3px;padding:4px 8px;border-radius:10px;animation:lc-chat-in .2s ease}
 .lc-cursor.touch .lc-typing{left:-4px;top:auto;bottom:-24px}
