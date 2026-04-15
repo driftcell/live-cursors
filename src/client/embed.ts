@@ -1,27 +1,18 @@
 /**
- * Live Cursors — classic <script> embed entry point.
- *
- * Reads configuration from data-* attributes on the script tag,
- * then delegates everything to the shared LiveCursorsEngine.
- *
- * Usage:
- *   <script src="https://live-cursors.driftcell.dev/embed.js"
- *     data-room="my-room"
- *     data-container="main"
- *     data-presence="#header-slot"
- *   ></script>
+ * Classic <script> embed entry — reads data-* attributes from its own tag
+ * and starts an engine on DOMContentLoaded.
  */
-import { LiveCursorsEngine } from './core.js';
+import { LiveCursorsEngine } from './engine';
+import type { EngineConfig } from './types';
 
 (function () {
-  var script = document.currentScript;
-  var ORIGIN = new URL(script.src).origin;
+  const script = document.currentScript as HTMLScriptElement | null;
+  if (!script) return;
+  const origin = new URL(script.src).origin;
+  const attr = (n: string): string => script.getAttribute(n) || '';
 
-  /* ── read config synchronously while currentScript is valid ── */
-  function attr(n) { return script && script.getAttribute(n) || ''; }
-
-  var cfg = {
-    server:            ORIGIN,
+  const cfg: EngineConfig = {
+    server:            origin,
     room:              attr('data-room') || (location.hostname + location.pathname),
     containerSelector: attr('data-container'),
     presenceSelector:  attr('data-presence'),
@@ -35,11 +26,7 @@ import { LiveCursorsEngine } from './core.js';
     throttleMs:        parseInt(attr('data-throttle') || '50', 10) || 50,
   };
 
-  function init() {
-    var engine = new LiveCursorsEngine(cfg);
-    engine.start();
-  }
-
+  const init = () => new LiveCursorsEngine(cfg).start();
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {

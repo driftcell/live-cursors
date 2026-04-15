@@ -59,10 +59,10 @@ header nav{margin-left:auto;display:flex;align-items:center;gap:16px}
   background:var(--surface);border:1px solid var(--border);border-radius:16px;
   box-shadow:0 2px 12px rgba(0,0,0,.04);
 }
-.stat-item{display:flex;flex-direction:column;align-items:center;gap:4px}
-.stat-value{font-size:2rem;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.stat-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
-@media(max-width:480px){.stats-bar{gap:24px;padding:18px}.stat-value{font-size:1.5rem}}
+.stat-item{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:96px}
+.stat-value{font-size:2rem;font-weight:800;line-height:1.1;min-height:2.2rem;font-variant-numeric:tabular-nums;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;min-height:14px}
+@media(max-width:480px){.stats-bar{gap:24px;padding:18px}.stat-value{font-size:1.5rem;min-height:1.65rem}.stat-item{min-width:80px}}
 
 /* ── features ── */
 .features{
@@ -143,8 +143,8 @@ footer a:hover{text-decoration:underline}
 .skeleton{position:relative;overflow:hidden;background:#e5e7eb;border-radius:6px;color:transparent!important;-webkit-text-fill-color:transparent}
 .skeleton::after{content:'';position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);animation:shimmer 1.5s infinite}
 @keyframes shimmer{100%{transform:translateX(100%)}}
-.stat-value.skeleton{display:inline-block;width:48px;height:32px}
-.stat-label.skeleton{display:inline-block;width:64px;height:12px;margin-top:2px}
+.stat-value.skeleton{display:inline-block;width:64px;height:2.2rem}
+.stat-label.skeleton{display:inline-block;width:84px;height:14px}
 </style>
 </head>
 <body>
