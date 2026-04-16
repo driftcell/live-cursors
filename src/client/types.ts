@@ -15,6 +15,7 @@ export interface EngineConfig {
   idleFade?: boolean;
   activeHalo?: boolean;
   palimpsest?: boolean;
+  showConstellation?: boolean;
   countAnonymous?: boolean;
   telemetryEnabled?: boolean;
   throttleMs?: number;

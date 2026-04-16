@@ -90,6 +90,10 @@ const CSS = `
 .lc-typing-dot:nth-child(3){animation-delay:.3s}
 @keyframes lc-typing-bounce{0%,100%{transform:translateY(0);opacity:.4}50%{transform:translateY(-4px);opacity:1}}
 
+/* constellation — full-screen night-sky overlay (hold "." to enter) */
+.lc-constellation{position:fixed;inset:0;z-index:1000001;pointer-events:none;opacity:0;transform:scale(1.04);transition:opacity .28s ease,transform .28s ease;will-change:opacity,transform}
+.lc-constellation.lc-active{opacity:1;transform:scale(1)}
+
 /* palimpsest — canvas behind all content; pinned to viewport, repainted on scroll */
 .lc-palimpsest{position:fixed;inset:0;pointer-events:none;z-index:0;mix-blend-mode:multiply}
 @media (prefers-color-scheme:dark){.lc-palimpsest{mix-blend-mode:screen}}

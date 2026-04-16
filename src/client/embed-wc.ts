@@ -8,7 +8,7 @@ const ATTRS = [
   'server','room','container','presence',
   'show-cursors','show-presence','show-login','show-chat',
   'show-snap','show-selection','show-ink','show-follow',
-  'show-reactions','idle-fade','active-halo','palimpsest',
+  'show-reactions','idle-fade','active-halo','palimpsest','show-constellation',
   'count-anonymous','telemetry','throttle',
 ];
 
@@ -41,6 +41,7 @@ class LiveCursorsElement extends HTMLElement {
       idleFade:          this.boolAttr('idle-fade', true),
       activeHalo:        this.boolAttr('active-halo', true),
       palimpsest:        this.getAttribute('palimpsest') === 'true',
+      showConstellation: this.boolAttr('show-constellation', true),
       countAnonymous:    this.boolAttr('count-anonymous', true),
       telemetryEnabled:  this.getAttribute('telemetry') === 'true',
       throttleMs:        parseInt(this.getAttribute('throttle') || '50', 10) || 50,

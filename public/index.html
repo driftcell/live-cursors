@@ -281,6 +281,10 @@ footer a:hover{text-decoration:underline}
           <div class="toggle"><input type="checkbox" id="cfg-palimpsest"><span class="slider"></span></div>
         </label>
         <label class="cfg-item">
+          <div><div class="cfg-name">Constellation</div><div class="cfg-desc">Hold "." for a star-map of cursors</div></div>
+          <div class="toggle"><input type="checkbox" id="cfg-constellation" checked><span class="slider"></span></div>
+        </label>
+        <label class="cfg-item">
           <div><div class="cfg-name">Telemetry</div><div class="cfg-desc">Fetch &amp; show site analytics</div></div>
           <div class="toggle"><input type="checkbox" id="cfg-telemetry" checked><span class="slider"></span></div>
         </label>
@@ -359,6 +363,7 @@ footer a:hover{text-decoration:underline}
     { key: "idle-fade",       el: "cfg-idle",      def: true  },
     { key: "active-halo",     el: "cfg-halo",      def: true  },
     { key: "palimpsest",      el: "cfg-palimpsest", def: false },
+    { key: "show-constellation", el: "cfg-constellation", def: true },
     { key: "count-anonymous", el: "cfg-anonymous", def: true  },
     { key: "telemetry",       el: "cfg-telemetry",  def: true  }
   ];

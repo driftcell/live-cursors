@@ -28,6 +28,7 @@ import type { EngineConfig } from './types';
     idleFade:          attr('data-idle-fade') !== 'false',
     activeHalo:        attr('data-active-halo') !== 'false',
     palimpsest:        attr('data-palimpsest') === 'true',
+    showConstellation: attr('data-show-constellation') !== 'false',
     countAnonymous:    attr('data-count-anonymous') !== 'false',
     telemetryEnabled:  attr('data-telemetry') === 'true',
     throttleMs:        parseInt(attr('data-throttle') || '50', 10) || 50,

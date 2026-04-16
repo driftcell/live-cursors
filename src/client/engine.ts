@@ -15,6 +15,7 @@ import { SelectionLayer } from './selection';
 import { ReactionsLayer, REACTION_KEYS } from './reactions';
 import { FollowMode } from './follow';
 import { Palimpsest } from './palimpsest';
+import { Constellation } from './constellation';
 
 const IDLE_MS = 30_000;         // remote cursor dims after this much silence
 const ACTIVE_MS = 1_500;         // presence halo stays while user moved recently
@@ -35,6 +36,7 @@ export class LiveCursorsEngine {
   private reactions!: ReactionsLayer;
   private follow!: FollowMode;
   private palimpsest: Palimpsest | null = null;
+  private constellation: Constellation | null = null;
 
   // state
   private users = new Map<string, RemoteUser>();
@@ -76,7 +78,8 @@ export class LiveCursorsEngine {
   private boundVisibility = () => this.onVisibility();
   private boundSelection = () => this.selection.onLocalChange();
   private boundUnload = () => this.conn?.stop();
-  private boundResize = () => { this.palimpsest?.resize(); this.scheduleRelayout(); };
+  private boundResize = () => { this.palimpsest?.resize(); this.constellation?.resize(); this.scheduleRelayout(); };
+  private boundKeyUp = (e: KeyboardEvent) => this.onKeyUp(e);
 
   constructor(cfg: EngineConfig) {
     this.cfg = {
@@ -96,6 +99,7 @@ export class LiveCursorsEngine {
       idleFade: cfg.idleFade !== false,
       activeHalo: cfg.activeHalo !== false,
       palimpsest: cfg.palimpsest === true,
+      showConstellation: cfg.showConstellation !== false,
       countAnonymous: cfg.countAnonymous !== false,
       telemetryEnabled: cfg.telemetryEnabled === true,
       throttleMs: cfg.throttleMs || 50,
@@ -116,6 +120,21 @@ export class LiveCursorsEngine {
     if (this.cfg.palimpsest) {
       this.palimpsest = new Palimpsest(document.body, () => this.container());
       this.palimpsest.load(this.cfg.server, this.cfg.room);
+    }
+    if (this.cfg.showConstellation) {
+      this.constellation = new Constellation(document.body, this.users, () => {
+        if (this.lastXR < 0) return null;
+        const ch = this.users.size > 0
+          ? Array.from(this.users.values()).reduce((m, u) => Math.max(m, u.containerHeight), 0)
+          : (this.container() as HTMLElement).scrollHeight || 1;
+        return {
+          xRatio: this.lastXR,
+          yOffset: this.lastYO,
+          containerHeight: ch,
+          color: this.selfColor,
+          username: this.selfUser?.username || 'You',
+        };
+      });
     }
     this.cursors = new CursorLayer(document.body);
     this.chat = new ChatLayer(this.cfg.showChat, document.body);
@@ -174,6 +193,7 @@ export class LiveCursorsEngine {
     this.presence?.destroy();
     this.overlay?.destroy();
     this.palimpsest?.destroy();
+    this.constellation?.destroy();
     this.follow?.stop();
   }
 
@@ -187,6 +207,7 @@ export class LiveCursorsEngine {
     window.addEventListener('scroll', this.boundScroll, { passive: true });
     window.addEventListener('resize', this.boundResize, { passive: true });
     document.addEventListener('keydown', this.boundKeyDown);
+    document.addEventListener('keyup', this.boundKeyUp);
     document.addEventListener('visibilitychange', this.boundVisibility);
     document.addEventListener('selectionchange', this.boundSelection);
     window.addEventListener('beforeunload', this.boundUnload);
@@ -201,6 +222,7 @@ export class LiveCursorsEngine {
     window.removeEventListener('scroll', this.boundScroll);
     window.removeEventListener('resize', this.boundResize);
     document.removeEventListener('keydown', this.boundKeyDown);
+    document.removeEventListener('keyup', this.boundKeyUp);
     document.removeEventListener('visibilitychange', this.boundVisibility);
     document.removeEventListener('selectionchange', this.boundSelection);
     window.removeEventListener('beforeunload', this.boundUnload);
@@ -266,13 +288,20 @@ export class LiveCursorsEngine {
     const tag = t?.tagName;
     const inField = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || t?.isContentEditable === true;
 
-    if (e.key === 'Escape' && this.cfg.showFollow && this.follow.getTargetId()) {
-      this.follow.stop();
-      e.preventDefault();
-      return;
+    if (e.key === 'Escape') {
+      if (this.constellation?.isActive()) { this.constellation.exit(); e.preventDefault(); return; }
+      if (this.cfg.showFollow && this.follow.getTargetId()) { this.follow.stop(); e.preventDefault(); return; }
     }
 
     if (inField) return;
+
+    // Hold "." → constellation view (also covers ">" on shifted layouts).
+    if ((e.key === '.' || e.key === '>') && this.constellation && !this.constellation.isActive()
+        && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      this.constellation.enter();
+      return;
+    }
 
     if (!e.ctrlKey && !e.metaKey && !e.altKey) {
       if (e.key === '/') {
@@ -295,6 +324,12 @@ export class LiveCursorsEngine {
           e.preventDefault();
         }
       }
+    }
+  }
+
+  private onKeyUp(e: KeyboardEvent): void {
+    if ((e.key === '.' || e.key === '>') && this.constellation?.isActive()) {
+      this.constellation.exit();
     }
   }
 
